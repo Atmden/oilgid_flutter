@@ -9,37 +9,45 @@ class CarMarkDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scrollController = ScrollController();
-
-    scrollController.addListener(() {
-      // Когда пользователь долистал до 80% списка - подгружаем еще
-      if (scrollController.position.pixels >= 
-          scrollController.position.maxScrollExtent * 0.8) {
-        ref.read(carMarkNotifierProvider.notifier).loadMore();
-      }
-    });
-
     return DropdownSearch<CarMark>(
-      items: (String? filter, infiniteScrollProps) async {
-        // Обновляем список с учетом фильтра
-        await ref
-            .read(carMarkNotifierProvider.notifier)
-            .refresh(search: filter);
-
-        return ref.read(carMarkNotifierProvider).value ?? [];
+      // Используем встроенную пагинацию DropdownSearch
+      items: (String? filter, LoadProps? loadProps) async {
+        final skip = loadProps?.skip ?? 0;
+        final take = loadProps?.take ?? 25;
+        final page = (skip ~/ take) + 1;
+        return ref
+            .read(carMarkRepositoryProvider)
+            .getCarMarks(search: filter, page: page, perPage: take);
       },
       // Как отображать объект в виде текста
-      itemAsString: (CarMark mark) => mark.cyrillic_name,
+      itemAsString: (CarMark mark) => mark.name,
       // Как сравнивать два объекта (обычно по id)
       compareFn: (CarMark a, CarMark b) => a.id == b.id,
+    
       popupProps: PopupProps.modalBottomSheet(
         showSearchBox: true,
-        listViewProps: ListViewProps(
-          controller: scrollController,
+        searchFieldProps: TextFieldProps(
+          decoration: InputDecoration(
+            border: UnderlineInputBorder(),
+            hintText: 'Введите марку для поиска',
+            hintStyle: TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: Colors.white,
+            prefixIcon: Icon(Icons.search),
+            prefixIconColor: Colors.grey,
+            prefixIconConstraints: BoxConstraints(minWidth: 40),
+          ),
+        ),
+        // Включаем встроенный infinite scroll + серверный поиск
+        disableFilter: true,
+        infiniteScrollProps: const InfiniteScrollProps(
+          loadProps: LoadProps(take: 25),
         ),
       ),
       decoratorProps: const DropDownDecoratorProps(
+
         decoration: InputDecoration(
+
           labelText: 'Марка автомобиля',
         ),
       ),
