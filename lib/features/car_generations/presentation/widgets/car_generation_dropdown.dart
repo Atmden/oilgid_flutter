@@ -1,22 +1,26 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/car_mark_provider.dart';
-import '../../domain/entities/car_mark.dart';
+import '../providers/car_generation_provider.dart';
+import '../../domain/entities/car_generation.dart';
 
-class CarMarkDropdown extends ConsumerWidget {
-  const CarMarkDropdown({
+class CarGenerationDropdown extends ConsumerWidget {
+  const CarGenerationDropdown({
     super.key,
     this.value,
     this.onChanged,
+    required this.markId,
+    required this.modelId,
   });
 
-  final CarMark? value;
-  final ValueChanged<CarMark?>? onChanged;
+  final CarGeneration? value;
+  final ValueChanged<CarGeneration?>? onChanged;
+  final int markId;
+  final int modelId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DropdownSearch<CarMark>(
+    return DropdownSearch<CarGeneration>(
       selectedItem: value,
       // Используем встроенную пагинацию DropdownSearch
       items: (String? filter, LoadProps? loadProps) async {
@@ -24,20 +28,20 @@ class CarMarkDropdown extends ConsumerWidget {
         final take = loadProps?.take ?? 25;
         final page = (skip ~/ take) + 1;
         return ref
-            .read(carMarkRepositoryProvider)
-            .getCarMarks(search: filter, page: page, perPage: take);
+            .read(carGenerationRepositoryProvider)
+            .getCarGenerations(markId: markId, modelId: modelId, search: filter, page: page, perPage: take);
       },
       // Как отображать объект в виде текста
-      itemAsString: (CarMark mark) => mark.name,
+      itemAsString: (CarGeneration generation) => "${generation.name} (${generation.year_from} - ${generation.year_to})",
       // Как сравнивать два объекта (обычно по id)
-      compareFn: (CarMark a, CarMark b) => a.id == b.id,
+      compareFn: (CarGeneration a, CarGeneration b) => a.id == b.id,
     
       popupProps: PopupProps.modalBottomSheet(
         showSearchBox: true,
         searchFieldProps: TextFieldProps(
           decoration: InputDecoration(
             border: UnderlineInputBorder(),
-            hintText: 'Введите марку для поиска',
+            hintText: 'Введите поколение для поиска',
             hintStyle: TextStyle(color: Colors.grey),
             filled: true,
             fillColor: Colors.white,
@@ -54,7 +58,7 @@ class CarMarkDropdown extends ConsumerWidget {
       ),
       decoratorProps: const DropDownDecoratorProps(
         decoration: InputDecoration(
-          labelText: 'Марка автомобиля',
+          labelText: 'Поколение автомобиля',
         ),
       ),
       onChanged: onChanged,

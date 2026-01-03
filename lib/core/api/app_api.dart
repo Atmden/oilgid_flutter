@@ -2,6 +2,8 @@ import 'package:oil_gid/core/api/init_token_generator.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 
 import '../../features/car_marks/data/datasources/car_mark_api.dart';
+import '../../features/car_models/data/datasources/car_model_api.dart';
+import '../../features/car_generations/data/datasources/car_generation_api.dart';
 import 'dio_client.dart';
 import 'endpoints.dart';
 
@@ -9,7 +11,9 @@ class AppApi {
   final _dio = DioClient().dio;
 
   late final CarMarkApi carMarkApi = CarMarkApi(_dio);
-
+  late final CarModelApi carModelApi = CarModelApi(_dio);
+  late final CarGenerationApi carGenerationApi = CarGenerationApi(_dio);
+  
   Future<Map<String, dynamic>> getConfig() async {
     final response = await _dio.get(Endpoints.appConfig);
     return response.data;

@@ -1,6 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:oil_gid/features/car_marks/domain/entities/car_mark.dart';
 import 'package:oil_gid/features/car_marks/presentation/widgets/car_mark_dropdown.dart';
 import 'package:oil_gid/themes/app_colors.dart';
+
+import '../features/car_models/domain/entities/car_model.dart';
+import '../features/car_models/presentation/widgets/car_model_dropdown.dart';
+import '../features/car_generations/domain/entities/car_generation.dart';
+import '../features/car_generations/presentation/widgets/car_generation_dropdown.dart';
 
 class CarSelectScreen extends StatefulWidget {
   const CarSelectScreen({super.key});
@@ -10,47 +17,12 @@ class CarSelectScreen extends StatefulWidget {
 }
 
 class _CarSelectScreenState extends State<CarSelectScreen> {
-  String? selectedBrand;
-  String? selectedModel;
-  String? selectedYear;
-  String? selectedEngine;
+  CarMark? selectedCarMark;
+  CarModel? selectedCarModel;
+  CarGeneration? selectedCarGeneration;
 
-  // Пример данных — в реальном приложении это будет API
-  final List<String> brands = ['ToyotaAAA', 'BMW', 'Mercedes', 'Hyundai'];
-  final Map<String, List<String>> modelsMap = {
-    'Toyota': ['Camry', 'Corolla', 'RAV4'],
-    'BMW': ['X5', 'X3', '3 Series'],
-    'Mercedes': ['C-Class', 'E-Class', 'GLA'],
-    'Hyundai': ['Elantra', 'Tucson', 'Santa Fe'],
-  };
-  final Map<String, List<String>> yearsMap = {
-    'Camry': ['2018', '2019', '2020', '2021'],
-    'Corolla': ['2017', '2018', '2019'],
-    'RAV4': ['2019', '2020', '2021'],
-    'X5': ['2018', '2019', '2020'],
-    'X3': ['2017', '2018', '2019'],
-    '3 Series': ['2018', '2019', '2020'],
-    'C-Class': ['2017', '2018', '2019'],
-    'E-Class': ['2018', '2019', '2020'],
-    'GLA': ['2019', '2020', '2021'],
-    'Elantra': ['2017', '2018', '2019'],
-    'Tucson': ['2018', '2019', '2020'],
-    'Santa Fe': ['2019', '2020', '2021'],
-  };
-  final Map<String, List<String>> enginesMap = {
-    'Camry': ['2.0 бензин', '2.5 бензин'],
-    'Corolla': ['1.8 бензин'],
-    'RAV4': ['2.0 бензин', '2.5 бензин'],
-    'X5': ['3.0 дизель', '4.0 бензин'],
-    'X3': ['2.0 бензин', '3.0 дизель'],
-    '3 Series': ['2.0 бензин'],
-    'C-Class': ['2.0 бензин', '2.2 дизель'],
-    'E-Class': ['2.0 бензин', '3.0 дизель'],
-    'GLA': ['2.0 бензин'],
-    'Elantra': ['1.6 бензин'],
-    'Tucson': ['2.0 бензин', '2.4 бензин'],
-    'Santa Fe': ['2.0 бензин', '2.2 дизель'],
-  };
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -61,133 +33,92 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
         foregroundColor: Colors.white,
         title: const Text('Выбор автомобиля'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CarMarkDropdown(),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              label: 'Марка',
-              value: selectedBrand,
-              items: brands,
-              onChanged: (val) {
-                setState(() {
-                  selectedBrand = val;
-                  selectedModel = null;
-                  selectedYear = null;
-                  selectedEngine = null;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              label: 'Модель',
-              value: selectedModel,
-              items: selectedBrand != null
-                  ? modelsMap[selectedBrand!] ?? []
-                  : [],
-              onChanged: (val) {
-                setState(() {
-                  selectedModel = val;
-                  selectedYear = null;
-                  selectedEngine = null;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              label: 'Год',
-              value: selectedYear,
-              items: selectedModel != null
-                  ? yearsMap[selectedModel!] ?? []
-                  : [],
-              onChanged: (val) {
-                setState(() {
-                  selectedYear = val;
-                  selectedEngine = null;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              label: 'Двигатель',
-              value: selectedEngine,
-              items: selectedModel != null
-                  ? enginesMap[selectedModel!] ?? []
-                  : [],
-              onChanged: (val) {
-                setState(() {
-                  selectedEngine = val;
-                });
-              },
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed:
-                    (selectedBrand != null &&
-                        selectedModel != null &&
-                        selectedYear != null &&
-                        selectedEngine != null)
-                    ? _finish
-                    : null,
-                child: const Text(
-                  'Сохранить',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Фиксированное место под логотип: всегда есть в дереве, меняется только url
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: 80,
+                    width: 80,
+                    child: Builder(
+                      builder: (_) {
+                        final logo = selectedCarMark?.logo ?? '';
+                        if (logo.isEmpty) {
+                          return const DecoratedBox(
+                            decoration: BoxDecoration(color: Colors.black12),
+                            child: Icon(Icons.directions_car, size: 32, color: Colors.grey),
+                          );
+                        }
+                        return CachedNetworkImage(
+                          imageUrl: logo,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 160,
+                          memCacheHeight: 160,
+                          filterQuality: FilterQuality.low,
+                          fadeInDuration: Duration.zero,
+                          fadeOutDuration: Duration.zero,
+                          progressIndicatorBuilder: (_, __, progress) => Center(
+                            child: SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: progress.progress,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              CarMarkDropdown(
+                value: selectedCarMark,
+                onChanged: (mark) {
+                  setState(() {
+                    selectedCarMark = mark;
+                    selectedCarModel = null;
+                    selectedCarGeneration = null;
+                  });
+                },
+              ),
+              
+              const SizedBox(height: 16),
+              if (selectedCarMark != null)
+                CarModelDropdown(
+                  markId: selectedCarMark!.id,
+                  value: selectedCarModel,
+                  onChanged: (model) {
+                    setState(() {
+                      selectedCarModel = model;
+                      selectedCarGeneration = null;
+                    });
+                  },
+                ),
+              if (selectedCarModel != null)
+                CarGenerationDropdown(
+                  markId: selectedCarMark!.id,
+                  modelId: selectedCarModel!.id,
+                  value: selectedCarGeneration,
+                  onChanged: (generation) {
+                    setState(() {
+                      selectedCarGeneration = generation;
+                    });
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButton<String>(
-            value: value,
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: items
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _finish() {
-    Navigator.pop(context, {
-      'brand': selectedBrand,
-      'model': selectedModel,
-      'year': selectedYear,
-      'engine': selectedEngine,
-    });
   }
 }
