@@ -7,7 +7,9 @@ import 'package:oil_gid/themes/app_colors.dart';
 import '../features/car_models/domain/entities/car_model.dart';
 import '../features/car_models/presentation/widgets/car_model_dropdown.dart';
 import '../features/car_generations/domain/entities/car_generation.dart';
+import '../features/car_configurations/domain/entities/car_configuration.dart';
 import '../features/car_generations/presentation/widgets/car_generation_dropdown.dart';
+import '../features/car_configurations/presentation/widgets/car_configuration_dropdown.dart';
 
 class CarSelectScreen extends StatefulWidget {
   const CarSelectScreen({super.key});
@@ -20,9 +22,7 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
   CarMark? selectedCarMark;
   CarModel? selectedCarModel;
   CarGeneration? selectedCarGeneration;
-
-
-  
+  CarConfiguration? selectedCarConfiguration;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +52,11 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
                         if (logo.isEmpty) {
                           return const DecoratedBox(
                             decoration: BoxDecoration(color: Colors.black12),
-                            child: Icon(Icons.directions_car, size: 32, color: Colors.grey),
+                            child: Icon(
+                              Icons.directions_car,
+                              size: 32,
+                              color: Colors.grey,
+                            ),
                           );
                         }
                         return CachedNetworkImage(
@@ -73,7 +77,8 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
                               ),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported),
+                          errorWidget: (_, __, ___) =>
+                              const Icon(Icons.image_not_supported),
                         );
                       },
                     ),
@@ -88,10 +93,11 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
                     selectedCarMark = mark;
                     selectedCarModel = null;
                     selectedCarGeneration = null;
+                    selectedCarConfiguration = null;
                   });
                 },
               ),
-              
+
               const SizedBox(height: 16),
               if (selectedCarMark != null)
                 CarModelDropdown(
@@ -101,6 +107,7 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
                     setState(() {
                       selectedCarModel = model;
                       selectedCarGeneration = null;
+                      selectedCarConfiguration = null;
                     });
                   },
                 ),
@@ -112,6 +119,19 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
                   onChanged: (generation) {
                     setState(() {
                       selectedCarGeneration = generation;
+                      selectedCarConfiguration = null;
+                    });
+                  },
+                ),
+              if (selectedCarGeneration != null)
+                CarConfigurationDropdown(
+                  markId: selectedCarMark!.id,
+                  modelId: selectedCarModel!.id,
+                  generationId: selectedCarGeneration!.id,
+                  value: selectedCarConfiguration,
+                  onChanged: (configuration) {
+                    setState(() {
+                      selectedCarConfiguration = configuration;
                     });
                   },
                 ),

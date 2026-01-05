@@ -1,23 +1,25 @@
-import '../models/car_generation_model.dart';
+import '../models/car_configuration_model.dart';
 import '../../../../core/api/endpoints.dart';
 import 'package:dio/dio.dart';
 
-class CarGenerationApi {
+class CarConfigurationApi {
   final Dio dio;
 
-  CarGenerationApi(this.dio);
+  CarConfigurationApi(this.dio);
 
-  Future<List<CarGenerationModel>> getGenerations({
+  Future<List<CarConfigurationModel>> getConfigurations({
     required int markId,
     required int modelId,
+    required int generationId,
     String? search,
     int page = 1,
     int perPage = 25,
   }) async {
     final response = await dio.get(
-      Endpoints.carGenerations
+      Endpoints.carConfigurations
           .replaceAll('{mark_id}', markId.toString())
-          .replaceAll('{model_id}', modelId.toString()),
+          .replaceAll('{model_id}', modelId.toString())
+          .replaceAll('{generation_id}', generationId.toString()),
       queryParameters: {
         if (search != null && search.isNotEmpty) 'search': search,
         'page': page,
@@ -27,6 +29,6 @@ class CarGenerationApi {
     print(response);
 
     final List<dynamic> data = response.data['data'];
-    return data.map((json) => CarGenerationModel.fromJson(json)).toList();
+    return data.map((json) => CarConfigurationModel.fromJson(json)).toList();
   }
 }

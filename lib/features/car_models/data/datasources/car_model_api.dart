@@ -22,6 +22,7 @@ class CarModelApi {
       },
     );
 
+    print(response.data);
     final List<dynamic> data = response.data['data'];
     return data.map((json) => CarModelModel.fromJson(json)).toList();
   }
