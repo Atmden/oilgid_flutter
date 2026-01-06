@@ -1,24 +1,26 @@
-import '../models/car_configuration_model.dart';
+import '../models/car_modification_model.dart';
 import '../../../../core/api/endpoints.dart';
 import 'package:dio/dio.dart';
 
-class CarConfigurationApi {
+class CarModificationApi {
   final Dio dio;
 
-  CarConfigurationApi(this.dio);
+  CarModificationApi(this.dio);
 
-  Future<List<CarConfigurationModel>> getConfigurations({
+  Future<List<CarModificationModel>> getModifications({
     required int markId,
     required int modelId,
     required int generationId,
+    required int configurationId,
     String? search,
     int page = 1,
     int perPage = 25,
   }) async {
-    final url = Endpoints.carConfigurations
+    final url = Endpoints.carModifications
           .replaceAll('{mark_id}', markId.toString())
           .replaceAll('{model_id}', modelId.toString())
-          .replaceAll('{generation_id}', generationId.toString());
+          .replaceAll('{generation_id}', generationId.toString())
+          .replaceAll('{configuration_id}', configurationId.toString());
     print(url);
     final response = await dio.get(
       url,
@@ -31,6 +33,6 @@ class CarConfigurationApi {
     print(response);
 
     final List<dynamic> data = response.data['data'];
-    return data.map((json) => CarConfigurationModel.fromJson(json)).toList();
+    return data.map((json) => CarModificationModel.fromJson(json)).toList();
   }
 }

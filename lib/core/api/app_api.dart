@@ -5,6 +5,7 @@ import '../../features/car_marks/data/datasources/car_mark_api.dart';
 import '../../features/car_models/data/datasources/car_model_api.dart';
 import '../../features/car_generations/data/datasources/car_generation_api.dart';
 import '../../features/car_configurations/data/datasources/car_configuration_api.dart';
+import '../../features/car_modifications/data/datasources/car_modification_api.dart';
 import 'dio_client.dart';
 import 'endpoints.dart';
 
@@ -17,7 +18,7 @@ class AppApi {
   late final CarConfigurationApi carConfigurationApi = CarConfigurationApi(
     _dio,
   );
-
+  late final CarModificationApi carModificationApi = CarModificationApi(_dio);
   Future<Map<String, dynamic>> getConfig() async {
     final response = await _dio.get(Endpoints.appConfig);
     return response.data;

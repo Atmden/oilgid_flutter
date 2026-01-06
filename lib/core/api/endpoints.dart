@@ -12,6 +12,8 @@ class Endpoints {
       '/cars/marks/{mark_id}/models/{model_id}/generations';
   static const carConfigurations =
       '/cars/marks/{mark_id}/models/{model_id}/generations/{generation_id}/configurations';
+  static const carModifications =
+      '/cars/marks/{mark_id}/models/{model_id}/generations/{generation_id}/configurations/{configuration_id}/modifications';
 
   // auth
   static const login = '/auth/login';
