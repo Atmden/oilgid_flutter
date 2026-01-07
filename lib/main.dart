@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/pages/blog.dart';
+import 'package:oil_gid/pages/car_history_selected.dart';
 import 'package:oil_gid/pages/car_select_screen.dart';
 import 'package:oil_gid/pages/car_show_selected.dart';
 import 'package:oil_gid/pages/home_page.dart';
@@ -21,11 +22,7 @@ Future<void> main() async {
 
   final accepted = await _checkPrivacyAccepted();
 
-  runApp(
-    ProviderScope(
-      child: MyApp(privacyAccepted: accepted),
-    ),
-  );
+  runApp(ProviderScope(child: MyApp(privacyAccepted: accepted)));
 }
 
 class MyApp extends StatelessWidget {
@@ -37,7 +34,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 4, 16, 20)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 4, 16, 20),
+        ),
       ),
       home: privacyAccepted ? const HomePage() : const TermOfUse(),
       routes: {
@@ -48,6 +47,7 @@ class MyApp extends StatelessWidget {
         '/car_select': (context) => CarSelectScreen(),
         '/car_show_selected': (context) => CarShowSelected(),
         '/blog': (context) => Blog(),
+        '/car_history_selected': (context) => CarHistorySelected(),
       },
     );
   }

@@ -45,48 +45,86 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
             children: [
               // Фиксированное место под логотип: всегда есть в дереве, меняется только url
               Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(150),
-                  child: SizedBox(
-                    height: 120,
-                    width: 120,
-                    child: Builder(
-                      builder: (_) {
-                        final logo = selectedCarMark?.logo ?? '';
-                        if (logo.isEmpty) {
-                          return const DecoratedBox(
-                            decoration: BoxDecoration(color: Colors.black12),
-                            child: Icon(
-                              Icons.directions_car,
-                              size: 32,
-                              color: Colors.grey,
-                            ),
-                          );
-                        }
-                        return CachedNetworkImage(
+                child: Builder(
+                  builder: (_) {
+                    final logo = selectedCarMark?.logo ?? '';
+                    final photo = selectedCarConfiguration?.photo ?? '';
+
+                    if (logo.isEmpty && photo.isEmpty) {
+                      return SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black12,
+                            borderRadius: BorderRadius.circular(120),
+                          ),
+                          child: const Icon(
+                            Icons.directions_car,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (logo.isNotEmpty && photo.isEmpty) {
+                      return SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: CachedNetworkImage(
                           imageUrl: logo,
                           fit: BoxFit.cover,
-                          memCacheWidth: 160,
-                          memCacheHeight: 160,
-                          filterQuality: FilterQuality.low,
-                          fadeInDuration: Duration.zero,
-                          fadeOutDuration: Duration.zero,
-                          progressIndicatorBuilder: (_, __, progress) => Center(
-                            child: SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: progress.progress,
-                              ),
-                            ),
+                          placeholder: (context, url) => const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(),
                           ),
-                          errorWidget: (_, __, ___) =>
-                              const Icon(Icons.image_not_supported),
-                        );
-                      },
-                    ),
-                  ),
+
+                          errorWidget: (context, url, error) =>
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black12,
+                                ),
+                                child: Icon(
+                                  Icons.directions_car,
+                                  size: 32,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                        ),
+                      );
+                    }
+
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(80),
+                      child: SizedBox(
+                        width: 290,
+                        height: 170,
+                        child: CachedNetworkImage(
+                          imageUrl: photo,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(),
+                          ),
+
+                          errorWidget: (context, url, error) =>
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black12,
+                                ),
+                                child: Icon(
+                                  Icons.directions_car,
+                                  size: 32,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 12),
@@ -179,7 +217,9 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
                       });
                       Navigator.pushNamed(context, '/car_show_selected');
                     },
-                    child: loading ? const CircularProgressIndicator() : const Text('Сохранить выбор'),
+                    child: loading
+                        ? const CircularProgressIndicator()
+                        : const Text('Сохранить выбор'),
                   ),
                 ),
             ],
@@ -198,7 +238,7 @@ Future<void> _saveCarSelection({
   required CarModification selectedCarModification,
 }) async {
   final box = Hive.box('user_cars');
-  await box.put('selected_car', {
+  await box.add({
     'mark_id': selectedCarMark.id,
     'mark_name': selectedCarMark.name,
     'mark_cyrillic_name': selectedCarMark.cyrillic_name,

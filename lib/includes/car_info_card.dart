@@ -10,9 +10,13 @@ class CarInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final box = Hive.box('user_cars');
     return ValueListenableBuilder(
-      valueListenable: box.listenable(keys: ['selected_car']),
+      valueListenable: box.listenable(),
       builder: (context, box, _) {
-        final raw = box.get('selected_car');
+        dynamic raw;
+        if (box.isNotEmpty) {
+          raw = box.getAt(box.length - 1);
+        }
+
         final data = raw is Map ? raw : null;
         final hasData = data != null;
 
@@ -24,12 +28,12 @@ class CarInfoCard extends StatelessWidget {
         if (mark != null && mark.isNotEmpty) parts.add(mark);
         if (model != null && model.isNotEmpty) parts.add(model);
         if (generation != null && generation.isNotEmpty) parts.add(generation);
-        
+
         if (modification != null && modification.isNotEmpty) {
           parts.add(modification);
         }
         final title = hasData && parts.isNotEmpty
-            ? parts.join(' • ')
+            ? parts.join(' ')
             : 'Автомобиль не выбран';
 
         void handleTap() {
@@ -38,6 +42,10 @@ class CarInfoCard extends StatelessWidget {
           } else {
             Navigator.pushNamed(context, '/car_select');
           }
+        }
+
+        void handleSelectAnother() {
+          Navigator.pushNamed(context, '/car_select');
         }
 
         return Material(
@@ -58,7 +66,7 @@ class CarInfoCard extends StatelessWidget {
                     top: 0,
                     bottom: 0,
                     child: Container(
-                      width: 70,
+                      width: 55,
                       decoration: BoxDecoration(
                         color: const Color.fromARGB(143, 255, 255, 255),
                         borderRadius: const BorderRadius.horizontal(
@@ -69,36 +77,45 @@ class CarInfoCard extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-                    child: Row(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 10,
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (hasData)
-                          CachedNetworkImage(
-                            imageUrl: data['mark_logo'] as String,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                          ),
-                        if (!hasData)
-                          const Icon(Icons.directions_car, color: Colors.white),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                hasData
-                                    ? 'Выбранный автомобиль'
-                                    : 'Автомобиль не выбран',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                ),
+                        Row(
+                          children: [
+                            const SizedBox(width: 60),
+                            Text(
+                              hasData
+                                  ? 'Выбранный автомобиль'
+                                  : 'Автомобиль не выбран',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
                               ),
-                              const SizedBox(height: 6),
-                              Text(
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            if (hasData)
+                              CachedNetworkImage(
+                                imageUrl: data['mark_logo'] as String,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                              ),
+                            if (!hasData)
+                              const Icon(
+                                size: 50,
+                                Icons.directions_car,
+                                color: Colors.white,
+                              ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
                                 title,
                                 style: TextStyle(
                                   color: Colors.white,
@@ -110,29 +127,36 @@ class CarInfoCard extends StatelessWidget {
                                   decorationColor: Colors.white70,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                hasData
-                                    ? 'Нажмите, чтобы открыть'
-                                    : 'Нажмите, чтобы выбрать',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            const SizedBox(width: 60),
+                            Text(
+                              hasData
+                                  ? 'Нажмите, чтобы открыть'
+                                  : 'Нажмите, чтобы выбрать',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
                               ),
-                              const SizedBox(height: 10),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.white),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: handleTap,
-                                  child: const Text('Выбрать другой'),
-                                ),
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white),
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: handleSelectAnother,
+                            child: Text(
+                              hasData ? 'Выбрать другой' : 'Выбрать автомобиль',
+                            ),
                           ),
                         ),
                       ],

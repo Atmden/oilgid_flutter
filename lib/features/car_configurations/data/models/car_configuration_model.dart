@@ -6,6 +6,7 @@ class CarConfigurationModel extends CarConfiguration {
     required super.name,
     required super.body_type,
     required super.doors_count,
+    required super.photo,
   });
 
   factory CarConfigurationModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +15,7 @@ class CarConfigurationModel extends CarConfiguration {
       name: json['name'],
       body_type: json['body_type'],
       doors_count: json['doors_count'],
+      photo: json['photo'],
     );
   }
 }

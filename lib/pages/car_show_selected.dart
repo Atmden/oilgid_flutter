@@ -26,7 +26,9 @@ class _CarShowSelectedState extends State<CarShowSelected> {
   @override
   void initState() {
     super.initState();
-    final selectedCar = Hive.box('user_cars').get('selected_car');
+
+    final boxCars = Hive.box('user_cars');
+    final selectedCar = boxCars.getAt(boxCars.length - 1) as Map;
     selectedCarMark = CarMark(
       id: selectedCar['mark_id'],
       name: selectedCar['mark_name'],
@@ -54,6 +56,7 @@ class _CarShowSelectedState extends State<CarShowSelected> {
       name: selectedCar['configuration_name'],
       body_type: selectedCar['configuration_body_type'],
       doors_count: selectedCar['configuration_doors_count'],
+      photo: selectedCar['configuration_photo'],
     );
     selectedCarModification = CarModification(
       id: selectedCar['modification_id'],
@@ -64,13 +67,18 @@ class _CarShowSelectedState extends State<CarShowSelected> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: MainAppBar(title: 'Выбранный автомобиль'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              OutlinedButton(
+                onPressed: () => {
+                  Navigator.pushNamed(context, '/car_history_selected'),
+                },
+                child: Text('История выбора автомобиля'),
+              ),
               CachedNetworkImage(
                 imageUrl: selectedCarMark.logo,
                 width: 150,
