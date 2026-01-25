@@ -259,6 +259,7 @@ Future<void> _saveCarSelection({
     'configuration_name': selectedCarConfiguration.name,
     'configuration_body_type': selectedCarConfiguration.body_type,
     'configuration_doors_count': selectedCarConfiguration.doors_count,
+    'configuration_photo': selectedCarConfiguration.photo,
     'modification_id': selectedCarModification.id,
     'modification_name': selectedCarModification.name,
   });
