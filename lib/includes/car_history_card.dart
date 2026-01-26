@@ -113,14 +113,19 @@ class CarHistoryCard extends StatelessWidget {
 
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white70,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 18),
+                          child: Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.white70,
+                            ),
                           ),
                         ),
                       ),
