@@ -3,8 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
 import 'package:oil_gid/lang/ru.dart';
-import 'package:oil_gid/pages/term_of_use.dart';
-import 'package:oil_gid/themes/default.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class About extends StatefulWidget {

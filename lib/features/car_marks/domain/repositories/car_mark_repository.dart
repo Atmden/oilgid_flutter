@@ -1,7 +1,7 @@
 import '../entities/car_mark.dart';
 
 abstract class CarMarkRepository {
-  get value => null;
+  Null get value => null;
 
   Future<List<CarMark>> getCarMarks({
     String? search,

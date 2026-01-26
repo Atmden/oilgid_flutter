@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class SliderMenu extends StatelessWidget {
   final Function(String)? onItemClick;
 
-  const SliderMenu({Key? key, this.onItemClick}) : super(key: key);
+  const SliderMenu({super.key, this.onItemClick});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class SliderMenu extends StatelessWidget {
                   onTap: onItemClick,
                 ),
               )
-              .toList(),
+              ,
         ],
       ),
     );
@@ -44,11 +44,10 @@ class _MenuItem extends StatelessWidget {
   final Function(String)? onTap;
 
   const _MenuItem({
-    Key? key,
     required this.title,
     required this.iconData,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

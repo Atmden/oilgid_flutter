@@ -4,7 +4,6 @@ import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
 import 'package:oil_gid/lang/ru.dart';
 import 'package:oil_gid/pages/home_page.dart';
-import 'package:oil_gid/themes/default.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TermOfUse extends StatefulWidget {

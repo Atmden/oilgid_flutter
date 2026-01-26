@@ -4,7 +4,6 @@ import 'package:oil_gid/includes/car_info_card.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
 import 'package:oil_gid/includes/quick_actions.dart';
 import 'package:oil_gid/includes/select_oil_card.dart';
-import 'package:oil_gid/themes/default.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

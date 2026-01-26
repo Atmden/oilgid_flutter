@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
-import 'package:oil_gid/themes/default.dart';
 
 class Blog extends StatefulWidget {
   const Blog({super.key});

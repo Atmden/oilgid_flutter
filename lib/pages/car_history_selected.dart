@@ -1,15 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/car_history_card.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
-import 'package:oil_gid/features/car_marks/domain/entities/car_mark.dart';
-import 'package:oil_gid/features/car_models/domain/entities/car_model.dart';
-import 'package:oil_gid/features/car_generations/domain/entities/car_generation.dart';
-import 'package:oil_gid/features/car_configurations/domain/entities/car_configuration.dart';
-import 'package:oil_gid/features/car_modifications/domain/entities/car_modification.dart';
 import 'package:oil_gid/model/car_history_model.dart';
-import 'package:oil_gid/themes/default.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class CarHistorySelected extends StatefulWidget {

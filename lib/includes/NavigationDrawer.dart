@@ -6,8 +6,6 @@ import 'package:oil_gid/model/NavigationItem.dart';
 import 'package:oil_gid/pages/about.dart';
 import 'package:oil_gid/pages/blog.dart';
 import 'package:oil_gid/pages/home_page.dart';
-import 'package:oil_gid/pages/privacy_policy.dart';
-import 'package:oil_gid/pages/term_of_use.dart';
 import 'package:oil_gid/themes/default.dart';
 
 class Navigationdrawer extends StatelessWidget {
