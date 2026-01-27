@@ -29,7 +29,7 @@ class _CarShowSelectedState extends State<CarShowSelected> {
 
     final boxCars = Hive.box('user_cars');
     final selectedCar = boxCars.getAt(boxCars.length - 1) as Map;
-    print('Selected Car: $selectedCar');
+
     selectedCarMark = CarMark(
       id: selectedCar['mark_id'],
       name: selectedCar['mark_name'],
