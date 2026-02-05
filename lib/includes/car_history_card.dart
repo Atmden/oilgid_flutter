@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 import '../model/car_history_model.dart';
 
@@ -16,7 +17,18 @@ class CarHistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => {},
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/car_show_selected',
+          arguments: OilSelectionArgs(
+            modificationId: item.modificationId,
+            carTitle: title,
+            carSubtitle: item.configurationName,
+            carLogo: item.markLogo,
+          ),
+        );
+      },
       child: Container(
         constraints: const BoxConstraints(minHeight: 20),
         decoration: BoxDecoration(
