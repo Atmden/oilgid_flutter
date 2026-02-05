@@ -7,10 +7,15 @@ import 'package:oil_gid/pages/car_select_screen.dart';
 import 'package:oil_gid/pages/car_show_selected.dart';
 import 'package:oil_gid/pages/home_page.dart';
 import 'package:oil_gid/pages/login.dart';
+import 'package:oil_gid/pages/map_screen.dart';
+import 'package:oil_gid/pages/oil_details.dart';
+import 'package:oil_gid/pages/oil_list.dart';
+import 'package:oil_gid/pages/oil_shops_map_page.dart';
 import 'package:oil_gid/pages/privacy_policy.dart';
 import 'package:oil_gid/pages/term_of_use.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,8 +51,25 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginPage(),
         '/car_select': (context) => CarSelectScreen(),
         '/car_show_selected': (context) => CarShowSelected(),
+        '/oil_list': (context) => OilListPage(),
+        '/oil_details': (context) => OilDetailsPage(),
         '/blog': (context) => Blog(),
         '/car_history_selected': (context) => CarHistorySelected(),
+        '/map': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as OilShopsMapArgs;
+          return MapScreen(
+            shops: args.shops,
+          );
+        },
+        '/oil_shops_map': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments as OilShopsMapArgs;
+          return OilShopsMapPage(
+            shops: args.shops,
+            userLat: args.userLat,
+            userLng: args.userLng,
+          );
+        },
       },
     );
   }

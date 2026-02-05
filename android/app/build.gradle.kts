@@ -5,18 +5,31 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val yandexApiKey = project
+  .providers
+  .gradleProperty("YANDEX_MAPKIT_API_KEY")
+  .orElse(
+    project.providers
+      .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+      .asText
+      .map { text: String ->
+        Regex("YANDEX_MAPKIT_API_KEY=(.*)").find(text)?.groupValues?.get(1) ?: ""
+      }
+  )
+
 android {
     namespace = "com.example.oilgid"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        @Suppress("DEPRECATION")
+        jvmTarget = JavaVersion.VERSION_21.toString()
     }
 
     defaultConfig {
@@ -24,10 +37,15 @@ android {
         applicationId = "com.example.oilgid"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        buildConfigField("String", "YANDEX_MAPKIT_API_KEY", "\"${yandexApiKey.get()}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -42,3 +60,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation("com.yandex.android:maps.mobile:4.22.0-full")
+}
+

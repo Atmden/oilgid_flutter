@@ -20,4 +20,15 @@ class Endpoints {
 
   // user
   static const profile = '/user/profile';
+
+  // oils
+  static const oilsByModification =
+      '/oils/by-modification/{modification_id}';
+
+  // oil shops
+  static const oilShop = '/oils/{oil_id}/shops';
+
+  // oil shops markers
+  static const oilShopsMarkers = '/oils/{oil_id}/markers';
+
 }
