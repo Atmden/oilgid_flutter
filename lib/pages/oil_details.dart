@@ -10,6 +10,8 @@ import 'package:oil_gid/themes/app_colors.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.dart';
 import 'package:oil_gid/features/shops/presentation/widgets/shop_list.dart';
+import 'package:oil_gid/features/oils/presentation/widgets/oil_gallery.dart';
+import 'package:oil_gid/features/oils/presentation/widgets/oil_approvals_group.dart';
 
 class OilDetailsPage extends StatefulWidget {
   const OilDetailsPage({super.key});
@@ -89,7 +91,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
       );
     }
 
-    final images = _resolveImages(item);
+    final images = item.resolveImages();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
@@ -101,38 +103,36 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildGallery(images),
-            if (images.length > 1) const SizedBox(height: 8),
-            if (images.length > 1) _buildDots(images.length),
+            OilGallery(images: images, onTap: (index) => _openGallery(images, index)),
             const SizedBox(height: 16),
-            _InfoBlock(
+            InfoBlock(
               title: 'Характеристики',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _InfoRow(label: 'Бренд', value: item.brandTitle),
-                  _InfoRow(label: 'Вязкость', value: item.viscosityTitle),
+                  InfoRow(label: 'Бренд', value: item.brandTitle),
+                  InfoRow(label: 'Вязкость', value: item.viscosityTitle),
                   if (_volume.isNotEmpty)
-                    _InfoRow(label: 'Требуемый объем', value: '$_volume л.'),
+                    InfoRow(label: 'Требуемый объем', value: '$_volume л.'),
                   if (_description.isNotEmpty)
-                    _InfoRow(label: 'Описание', value: _description),
+                    InfoRow(label: 'Описание', value: _description),
                   if (item.specification != null)
-                    _ApprovalsGroup(
+                    ApprovalsGroup(
                       title: 'ACEA',
                       values: item.specification!.aceas,
                     ),
                   if (item.specification != null)
-                    _ApprovalsGroup(
+                    ApprovalsGroup(
                       title: 'API',
                       values: item.specification!.apis,
                     ),
                   if (item.specification != null)
-                    _ApprovalsGroup(
+                    ApprovalsGroup(
                       title: 'OEM',
                       values: item.specification!.oemApprovals,
                     ),
                   if (item.specification != null)
-                    _ApprovalsGroup(
+                    ApprovalsGroup(
                       title: 'ILSAC',
                       values: item.specification!.ilsacs,
                     ),
@@ -143,7 +143,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
             if (_shopsFuture != null) ...[
               const SizedBox(height: 16),
 
-              _InfoBlock(
+              InfoBlock(
                 title: 'Ближайшие магазины',
                 child: Column(
                   children: [
@@ -190,7 +190,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
             if (item.brand != null &&
                 (item.brand!.logo.isNotEmpty ||
                     item.brand!.description.isNotEmpty))
-              _InfoBlock(
+              InfoBlock(
                 title: 'О бренде',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,97 +241,13 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
               ),
             if (item.description.isNotEmpty) const SizedBox(height: 12),
             if (item.description.isNotEmpty)
-              _InfoBlock(
+              InfoBlock(
                 title: 'Описание',
                 child: Text(item.description, textAlign: TextAlign.justify),
               ),
           ],
         ),
       ),
-    );
-  }
-
-  List<String> _resolveImages(OilItem item) {
-    if (item.images.isNotEmpty) {
-      return item.images;
-    }
-    if (item.thumb.isNotEmpty) {
-      return [item.thumb];
-    }
-    return [];
-  }
-
-  Widget _buildGallery(List<String> images) {
-    if (images.isEmpty) {
-      return Container(
-        height: 220,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const Center(
-          child: Icon(Icons.oil_barrel, size: 48, color: Colors.black54),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 220,
-      child: PageView.builder(
-        itemCount: images.length,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () => _openGallery(images, index),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: images[index],
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) =>
-                      const Center(child: CircularProgressIndicator()),
-                  errorWidget: (context, url, error) => const Icon(
-                    Icons.oil_barrel,
-                    size: 40,
-                    color: Colors.black54,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildDots(int count) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(count, (index) {
-        final active = index == _currentIndex;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 12 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.black26,
-            borderRadius: BorderRadius.circular(6),
-          ),
-        );
-      }),
     );
   }
 
@@ -345,106 +261,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   }
 }
 
-class _InfoBlock extends StatelessWidget {
-  final String title;
-  final Widget child;
 
-  const _InfoBlock({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    if (value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(label, style: const TextStyle(color: Colors.black54)),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ApprovalsGroup extends StatelessWidget {
-  final String title;
-  final List<OilApproval> values;
-
-  const _ApprovalsGroup({required this.title, required this.values});
-
-  @override
-  Widget build(BuildContext context) {
-    if (values.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(color: Colors.black54, fontSize: 12),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: values
-                .where((item) => item.title.isNotEmpty)
-                .map(
-                  (item) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(
-                      item.title,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _OilGalleryViewer extends StatefulWidget {
   final List<String> images;

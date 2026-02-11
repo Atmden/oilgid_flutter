@@ -34,3 +34,11 @@ class OilItem {
     required this.images,
   });
 }
+
+extension OilItemImages on OilItem {
+  List<String> resolveImages() {
+    if (images.isNotEmpty) return images;
+    if (thumb.isNotEmpty) return [thumb];
+    return [];
+  }
+}

@@ -1,19 +1,21 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_type.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:oil_gid/themes/app_colors.dart';
+import 'package:oil_gid/features/oils/presentation/providers/oil_provider.dart';
 
-class OilListPage extends StatefulWidget {
+class OilListPage extends ConsumerStatefulWidget {
   const OilListPage({super.key});
 
   @override
-  State<OilListPage> createState() => _OilListPageState();
+  ConsumerState<OilListPage> createState() => _OilListPageState();
 }
 
-class _OilListPageState extends State<OilListPage> {
+class _OilListPageState extends ConsumerState<OilListPage> {
   bool _initialized = false;
   int? _modificationId;
   int? _oilTypeId;
@@ -167,9 +169,7 @@ class _OilListPageState extends State<OilListPage> {
           ),
           child: ListTile(
             onTap: () {
-              print(_oilTypeVolume);
-              print(_oilTypeDescription);
-              print(item);
+              ref.read(selectedOilProvider.notifier).state = item;
               Navigator.pushNamed(
                 context,
                 '/oil_details',
