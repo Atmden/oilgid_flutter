@@ -11,6 +11,7 @@ import 'package:oil_gid/pages/map_screen.dart';
 import 'package:oil_gid/pages/oil_details.dart';
 import 'package:oil_gid/pages/oil_list.dart';
 import 'package:oil_gid/pages/oil_shops_map_page.dart';
+import 'package:oil_gid/pages/shop_products_page.dart';
 import 'package:oil_gid/pages/privacy_policy.dart';
 import 'package:oil_gid/pages/term_of_use.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -70,6 +71,7 @@ class MyApp extends StatelessWidget {
             userLng: args.userLng,
           );
         },
+        '/shop_products': (context) => const ShopProductsPage(),
       },
     );
   }

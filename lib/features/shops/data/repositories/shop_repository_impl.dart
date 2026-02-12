@@ -1,4 +1,5 @@
 import '../../domain/entities/shop.dart';
+import '../../../oils/domain/entities/oil_item.dart';
 import '../../domain/repositories/shop_repository.dart';
 import '../datasource/shop_model_api.dart';
 
@@ -15,5 +16,10 @@ class ShopRepositoryImpl implements ShopRepository {
     int? radiusKm,
   }) {
     return api.getShopsMarkers(oilId: oilId, lat: lat, lng: lng, radiusKm: radiusKm);
+  }
+
+  @override
+  Future<List<OilItem>> getShopProducts({required int shopId}) {
+    return api.getShopProducts(shopId: shopId);
   }
 }

@@ -1,4 +1,5 @@
 import '../entities/shop.dart';
+import '../../../oils/domain/entities/oil_item.dart';
 
 abstract class ShopRepository {
   Future<List<Shop>> getShopsMarkers({
@@ -7,4 +8,6 @@ abstract class ShopRepository {
     double? lng,
     int? radiusKm,
   });
+
+  Future<List<OilItem>> getShopProducts({required int shopId});
 }

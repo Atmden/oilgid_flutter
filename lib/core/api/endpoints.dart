@@ -31,4 +31,7 @@ class Endpoints {
   // oil shops markers
   static const oilShopsMarkers = '/oils/{oil_id}/markers';
 
+  // shop products
+  static const shopProducts = '/shops/{shop_id}/products';
+
 }

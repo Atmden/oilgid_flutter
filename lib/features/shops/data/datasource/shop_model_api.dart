@@ -1,5 +1,7 @@
 import '../../../../core/api/endpoints.dart';
 import 'package:dio/dio.dart';
+import '../../../oils/domain/entities/oil_item.dart';
+import '../../../oils/data/models/oil_item_model.dart';
 import '../models/shop_model.dart';
 
 class ShopModelApi {
@@ -26,5 +28,17 @@ class ShopModelApi {
     print(response.data);
     final List<dynamic> data = response.data['data'];
     return data.map((json) => ShopModel.fromJson(json)).toList();
+  }
+
+  Future<List<OilItem>> getShopProducts({required int shopId}) async {
+    final response = await dio.get(
+      Endpoints.shopProducts.replaceAll('{shop_id}', shopId.toString()),
+    );
+
+    final data = response.data['data'] as List<dynamic>? ?? [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map<OilItem>(OilItemModel.fromJson)
+        .toList();
   }
 }
