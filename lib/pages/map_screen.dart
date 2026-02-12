@@ -185,59 +185,65 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           child: DraggableScrollableSheet(
             initialChildSize: 0.5,
             minChildSize: 0.3,
-            maxChildSize: 1,
+            maxChildSize: 0.95,
             expand: false,
             builder: (context, scrollController) {
               final product = ref.watch(selectedOilProvider);
               final images = product?.resolveImages() ?? [];
 
-              return ListView(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[400],
-                        borderRadius: BorderRadius.circular(10),
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[400],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                  ),
 
-                  Text(
-                    shop.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                    Text(
+                      shop.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                  _infoRow('Адрес', shop.address, 'address'),
-                  _infoRow('Телефон', shop.phone, 'phone'),
-                  _infoRow('Email', shop.email, 'email'),
-                  _infoRow('Сайт', shop.website, 'website'),
+                    _infoRow('Адрес', shop.address, 'address'),
+                    _infoRow('Телефон', shop.phone, 'phone'),
+                    _infoRow('Email', shop.email, 'email'),
+                    _infoRow('Сайт', shop.website, 'website'),
 
-                  if (shop.price != null)
-                    _infoRow('Цена', shop.price!.toStringAsFixed(2), 'price'),
+                    if (shop.price != null)
+                      _infoRow('Цена', shop.price!.toStringAsFixed(2), 'price'),
 
-                  if (shop.quantity != null)
-                    _infoRow('Наличие', shop.quantity.toString(), 'quantity'),
+                    if (shop.quantity != null)
+                      _infoRow('Наличие', shop.quantity.toString(), 'quantity'),
 
-                  if (shop.distanceM != null)
-                    _infoRow('Расстояние', '${shop.distanceM} м', 'distance'),
+                    if (shop.distanceM != null)
+                      _infoRow('Расстояние', '${shop.distanceM} м', 'distance'),
 
-                  Card(
-                    margin: const EdgeInsets.only(top: 16),
-                    child: Column(
+                    Column(
                       children: [
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 12),
                         const Text(
                           'Товар который вы смотрели',
-                          style: TextStyle(fontSize: 14),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -251,6 +257,36 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         const SizedBox(height: 12),
                         OilGallery(images: images),
                         const SizedBox(height: 8),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Характеристики',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        InfoRow(
+                          label: 'Бренд',
+                          value: product?.brandTitle ?? '',
+                        ),
+                        InfoRow(
+                          label: 'Вязкость',
+                          value: product?.viscosityTitle ?? '',
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Допуски',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         if (product?.specification != null)
                           ApprovalsGroup(
                             title: 'ACEA',
@@ -271,11 +307,33 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             title: 'ILSAC',
                             values: product!.specification!.ilsacs,
                           ),
-                        Text(product?.description ?? 'Нет описания'),
+                        const SizedBox(height: 12),
+                        if (product?.description != null)
+                          const Text(
+                            'Описание',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        if (product?.description != null)
+                          Text(
+                            product!.description,
+                            style: const TextStyle(fontSize: 14),
+                            textAlign: TextAlign.justify,
+                          ),
+                        const SizedBox(height: 12),
                       ],
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => {},
+                      child: const Text('Посмотреть все товары магазина'),
+                    ),
+                  ],
+                ),
               );
             },
           ),
