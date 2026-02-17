@@ -1,4 +1,4 @@
-package com.example.oilgid
+package com.avtomastersoft.oilgid
 
 import android.app.Application
 import com.yandex.mapkit.MapKitFactory

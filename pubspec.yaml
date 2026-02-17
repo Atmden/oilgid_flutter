@@ -12,6 +12,9 @@ dependencies:
   device_info_plus: ^12.3.0
   dio: ^5.9.0
   dropdown_search: ^6.0.2
+  firebase_analytics: ^12.1.2
+  firebase_auth: ^6.1.4
+  firebase_core: ^4.4.0
   flutter:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4

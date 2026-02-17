@@ -17,10 +17,15 @@ import 'package:oil_gid/pages/term_of_use.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   await AppApi().initApp();
   await Hive.initFlutter();
 
@@ -28,17 +33,19 @@ Future<void> main() async {
 
   final accepted = await _checkPrivacyAccepted();
 
-  runApp(ProviderScope(child: MyApp(privacyAccepted: accepted)));
+  runApp(ProviderScope(child: MyApp(privacyAccepted: accepted, analytics: analytics)));
 }
 
 class MyApp extends StatelessWidget {
   final bool privacyAccepted;
+  final FirebaseAnalytics analytics;
 
-  const MyApp({super.key, required this.privacyAccepted});
+  const MyApp({super.key, required this.privacyAccepted, required this.analytics});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 4, 16, 20),
@@ -57,10 +64,9 @@ class MyApp extends StatelessWidget {
         '/blog': (context) => Blog(),
         '/car_history_selected': (context) => CarHistorySelected(),
         '/map': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as OilShopsMapArgs;
-          return MapScreen(
-            shops: args.shops,
-          );
+          final args =
+              ModalRoute.of(context)!.settings.arguments as OilShopsMapArgs;
+          return MapScreen(shops: args.shops);
         },
         '/oil_shops_map': (context) {
           final args =

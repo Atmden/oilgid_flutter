@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "968648113072",
+    "project_id": "oilgid",
+    "storage_bucket": "oilgid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:968648113072:android:c575e7b20d621a79587475",
+        "android_client_info": {
+          "package_name": "com.avtomastersoft.oilgid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjfvBcEbcAGqb69S_PlRADnzEMQmOv6bE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
