@@ -17,6 +17,9 @@ class Endpoints {
 
   // auth
   static const login = '/auth/login';
+  static const verifySendCode = '/verify/sendCode';
+  static const verifyCode = '/verify/verifyCode';
+  static const register = '/auth/register';
 
   // user
   static const profile = '/user/profile';

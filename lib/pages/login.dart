@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:oil_gid/core/api/auth_api.dart';
 import 'package:oil_gid/core/api/auth_registration_service.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 
@@ -97,6 +97,7 @@ class _PhoneMaskFormatter extends TextInputFormatter {
 enum _AuthStep {
   phoneInput,
   codeVerify,
+  profileInput,
   passwordCreate,
   pinCreate,
   pinLogin,
@@ -112,11 +113,12 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _tokenStorage = TokenStorage();
-  final _firebaseAuth = FirebaseAuth.instance;
+  final _authApi = AuthApi();
   final _registrationService = AuthRegistrationService();
 
   final _phoneController = TextEditingController();
   final _smsCodeController = TextEditingController();
+  final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
   final _loginPasswordController = TextEditingController();
@@ -128,13 +130,11 @@ class _LoginPageState extends State<LoginPage> {
   bool _isSmsSendDisabled = false;
   bool _isConsentAccepted = false;
   String? _errorMessage;
-  String? _verificationId;
-  int? _forceResendingToken;
-  User? _verifiedFirebaseUser;
   String _normalizedPhone = '';
   String? _storedPhone;
   String? _storedPasswordHash;
   String? _storedPinHash;
+  String _rawPassword = '';
   String _pinDraft = '';
   String _pinConfirmDraft = '';
   bool _isPinConfirmationStep = false;
@@ -150,6 +150,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _phoneController.dispose();
     _smsCodeController.dispose();
+    _nameController.dispose();
     _passwordController.dispose();
     _passwordConfirmController.dispose();
     _loginPasswordController.dispose();
@@ -219,56 +220,28 @@ class _LoginPageState extends State<LoginPage> {
     _normalizedPhone = normalized;
 
     try {
-      await _firebaseAuth.verifyPhoneNumber(
-        phoneNumber: normalized,
-        forceResendingToken: _forceResendingToken,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          final userCredential = await _firebaseAuth.signInWithCredential(
-            credential,
-          );
-          if (!mounted) return;
-          setState(() {
-            _verifiedFirebaseUser = userCredential.user;
-            _step = _AuthStep.passwordCreate;
-            _errorMessage = null;
-          });
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (!mounted) return;
-          setState(() {
-            _isSmsSendDisabled = false;
-          });
-          _setError(e.message ?? 'Не удалось отправить SMS. Попробуйте снова.');
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          if (!mounted) return;
-          setState(() {
-            _verificationId = verificationId;
-            _forceResendingToken = resendToken;
-            _step = _AuthStep.codeVerify;
-            _errorMessage = null;
-          });
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-        },
-      );
-    } catch (_) {
+      await _authApi.sendCode(normalized);
+      if (!mounted) return;
+      setState(() {
+        _step = _AuthStep.codeVerify;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
       if (mounted) {
         setState(() {
           _isSmsSendDisabled = false;
         });
       }
-      _setError('Ошибка при отправке кода подтверждения.');
-    } finally {
       _setLoading(false);
     }
   }
 
   Future<void> _verifySmsCode() async {
     final code = _smsCodeController.text.trim();
-    if (_verificationId == null || code.length < 6) {
-      _setError('Введите корректный 6-значный SMS-код.');
+    if (code.length < 4) {
+      _setError('Введите корректный код.');
       return;
     }
 
@@ -276,23 +249,37 @@ class _LoginPageState extends State<LoginPage> {
     _setError('');
 
     try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: code,
-      );
-      final userCredential = await _firebaseAuth.signInWithCredential(
-        credential,
+      final result = await _authApi.verifyCode(
+        phone: _normalizedPhone,
+        code: code,
       );
       if (!mounted) return;
-      setState(() {
-        _verifiedFirebaseUser = userCredential.user;
-        _step = _AuthStep.passwordCreate;
-      });
-    } on FirebaseAuthException catch (e) {
-      _setError(e.message ?? 'Неверный код подтверждения.');
+      if (result) {
+        setState(() {
+          _step = _AuthStep.profileInput;
+          _errorMessage = null;
+        });
+      } else {
+        _setError('Неверный код подтверждения.');
+      }
+    } catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       _setLoading(false);
     }
+  }
+
+  void _saveProfileStep() {
+    final name = _nameController.text.trim();
+    if (name.length < 2) {
+      _setError('Введите имя.');
+      return;
+    }
+
+    setState(() {
+      _step = _AuthStep.passwordCreate;
+      _errorMessage = null;
+    });
   }
 
   void _savePasswordStep() {
@@ -309,6 +296,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() {
       _storedPasswordHash = _hashValue(password);
+      _rawPassword = password;
       _step = _AuthStep.pinCreate;
       _pinDraft = '';
       _pinConfirmDraft = '';
@@ -326,8 +314,17 @@ class _LoginPageState extends State<LoginPage> {
       _setError('PIN-коды не совпадают.');
       return;
     }
-    if (_verifiedFirebaseUser == null || _storedPasswordHash == null) {
+    if (_storedPasswordHash == null || _rawPassword.isEmpty) {
       _setError('Сессия регистрации устарела. Начните регистрацию заново.');
+      return;
+    }
+    if (_normalizedPhone.isEmpty) {
+      _setError('Не удалось определить номер телефона.');
+      return;
+    }
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      _setError('Введите имя.');
       return;
     }
 
@@ -336,10 +333,12 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await _registrationService.completeRegistration(
         AuthRegistrationPayload(
-          phoneNumber: _verifiedFirebaseUser!.phoneNumber ?? _normalizedPhone,
+          phoneNumber: _normalizedPhone,
+          name: name,
+          password: _rawPassword,
           passwordHash: _storedPasswordHash!,
+          pin: _pinDraft,
           pinHash: _hashValue(_pinDraft),
-          firebaseUid: _verifiedFirebaseUser!.uid,
         ),
       );
       if (!mounted) return;
@@ -372,7 +371,6 @@ class _LoginPageState extends State<LoginPage> {
     _setLoading(true);
     _setError('');
     try {
-      await _firebaseAuth.signOut();
       await _tokenStorage.clearPhoneRegistrationData();
       if (!mounted) return;
       setState(() {
@@ -383,6 +381,8 @@ class _LoginPageState extends State<LoginPage> {
         _isSmsSendDisabled = false;
         _isConsentAccepted = false;
         _phoneController.text = '+7';
+        _nameController.clear();
+        _smsCodeController.clear();
         _loginPinController.clear();
         _loginPasswordController.clear();
       });
@@ -624,7 +624,7 @@ class _LoginPageState extends State<LoginPage> {
           onPressed: _isLoading || _isSmsSendDisabled || !_isConsentAccepted
               ? null
               : _sendSmsCode,
-          child: const Text('Отправить SMS-код'),
+          child: const Text('Отправить код в WhatsApp'),
         ),
       ],
     );
@@ -635,7 +635,7 @@ class _LoginPageState extends State<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Код отправлен на $_normalizedPhone',
+          'Код отправлен в WhatsApp на $_normalizedPhone',
           style: const TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 12),
@@ -643,7 +643,7 @@ class _LoginPageState extends State<LoginPage> {
           controller: _smsCodeController,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
-            labelText: 'SMS-код',
+            labelText: 'Код из WhatsApp',
             border: OutlineInputBorder(),
           ),
         ),
@@ -655,6 +655,32 @@ class _LoginPageState extends State<LoginPage> {
         TextButton(
           onPressed: _isLoading ? null : _sendSmsCode,
           child: const Text('Отправить код повторно'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Расскажите о себе',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _nameController,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(
+            labelText: 'Имя',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _saveProfileStep,
+          child: const Text('Продолжить'),
         ),
       ],
     );
@@ -845,6 +871,8 @@ class _LoginPageState extends State<LoginPage> {
         return _buildPhoneStep();
       case _AuthStep.codeVerify:
         return _buildCodeStep();
+      case _AuthStep.profileInput:
+        return _buildProfileStep();
       case _AuthStep.passwordCreate:
         return _buildPasswordCreateStep();
       case _AuthStep.pinCreate:
