@@ -7,17 +7,11 @@ class AuthRegistrationPayload {
   final String phoneNumber;
   final String name;
   final String password;
-  final String passwordHash;
-  final String pin;
-  final String pinHash;
 
   const AuthRegistrationPayload({
     required this.phoneNumber,
     required this.name,
     required this.password,
-    required this.passwordHash,
-    required this.pin,
-    required this.pinHash,
   });
 }
 
@@ -32,23 +26,81 @@ class AuthRegistrationService {
     final response = await _dio.post(
       Endpoints.register,
       data: {
-        'user_phone': payload.phoneNumber,
+        'phone': payload.phoneNumber,
         'name': payload.name,
         'password': payload.password,
-        'pin': payload.pin,
+        'password_confirmation': payload.password,
       },
     );
+    final body = response.data;
+    final responseError = _extractResponseError(body);
+    if (responseError != null) {
+      throw Exception(responseError);
+    }
 
-    final token = _extractUserToken(response.data);
+    final token = _extractUserToken(body);
     if (token == null) {
       throw Exception('Не удалось получить токен пользователя.');
     }
 
     await _tokenStorage.saveRegisteredPhone(payload.phoneNumber);
-    await _tokenStorage.savePasswordHash(payload.passwordHash);
-    await _tokenStorage.savePinHash(payload.pinHash);
     await _tokenStorage.saveUserToken(token);
     await _tokenStorage.setPhoneRegistrationCompleted(true);
+  }
+
+  Future<void> loginWithPhone({
+    required String phoneNumber,
+    required String password,
+  }) async {
+    final response = await _dio.post(
+      Endpoints.login,
+      data: {'phone': phoneNumber, 'password': password},
+    );
+
+    final body = response.data;
+    final responseError = _extractResponseError(body);
+    if (responseError != null) {
+      throw Exception(responseError);
+    }
+
+    final token = _extractUserToken(body);
+    if (token == null) {
+      throw Exception('Не удалось получить токен пользователя.');
+    }
+
+    await _tokenStorage.saveRegisteredPhone(phoneNumber);
+    await _tokenStorage.saveUserToken(token);
+    await _tokenStorage.setPhoneRegistrationCompleted(true);
+  }
+
+  String? _extractResponseError(dynamic data) {
+    if (data is! Map<String, dynamic>) return null;
+
+    final message = data['message'];
+    if (message is String && message.trim().isNotEmpty) {
+      return message.trim();
+    }
+
+    final errors = data['errors'];
+    if (errors is Map<String, dynamic>) {
+      for (final value in errors.values) {
+        if (value is List && value.isNotEmpty) {
+          final first = value.first;
+          if (first is String && first.trim().isNotEmpty) {
+            return first.trim();
+          }
+        }
+        if (value is String && value.trim().isNotEmpty) {
+          return value.trim();
+        }
+      }
+    }
+
+    if (data['success'] == false) {
+      return 'Не удалось выполнить запрос.';
+    }
+
+    return null;
   }
 
   String? _extractUserToken(dynamic data) {

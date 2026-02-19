@@ -17,6 +17,8 @@ class Endpoints {
 
   // auth
   static const login = '/auth/login';
+  static const authCheckUserByPhone = '/auth/check-user-by-phone';
+  static const authResetPassword = '/auth/reset-password';
   static const verifySendCode = '/verify/sendCode';
   static const verifyCode = '/verify/verifyCode';
   static const register = '/auth/register';

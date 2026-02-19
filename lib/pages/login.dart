@@ -102,6 +102,8 @@ enum _AuthStep {
   pinCreate,
   pinLogin,
   passwordLogin,
+  passwordRecoveryPhoneInput,
+  passwordRecoveryNewPassword,
 }
 
 class LoginPage extends StatefulWidget {
@@ -119,8 +121,13 @@ class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
   final _smsCodeController = TextEditingController();
   final _nameController = TextEditingController();
+  final _nameFocusNode = FocusNode();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
+  final _recoveryPhoneController = TextEditingController();
+  final _recoveryPasswordController = TextEditingController();
+  final _recoveryPasswordConfirmController = TextEditingController();
+  final _loginPhoneController = TextEditingController();
   final _loginPasswordController = TextEditingController();
   final _loginPinController = TextEditingController();
   final _phoneMaskFormatter = _PhoneMaskFormatter();
@@ -135,6 +142,7 @@ class _LoginPageState extends State<LoginPage> {
   String? _storedPasswordHash;
   String? _storedPinHash;
   String _rawPassword = '';
+  bool _isRecoveryCodeFlow = false;
   String _pinDraft = '';
   String _pinConfirmDraft = '';
   bool _isPinConfirmationStep = false;
@@ -143,6 +151,8 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _phoneController.text = '+7';
+    _recoveryPhoneController.text = '+7';
+    _loginPhoneController.text = '+7';
     _loadExistingRegistration();
   }
 
@@ -151,8 +161,13 @@ class _LoginPageState extends State<LoginPage> {
     _phoneController.dispose();
     _smsCodeController.dispose();
     _nameController.dispose();
+    _nameFocusNode.dispose();
     _passwordController.dispose();
     _passwordConfirmController.dispose();
+    _recoveryPhoneController.dispose();
+    _recoveryPasswordController.dispose();
+    _recoveryPasswordConfirmController.dispose();
+    _loginPhoneController.dispose();
     _loginPasswordController.dispose();
     _loginPinController.dispose();
     super.dispose();
@@ -167,7 +182,10 @@ class _LoginPageState extends State<LoginPage> {
       _storedPasswordHash = await _tokenStorage.getPasswordHash();
       _storedPinHash = await _tokenStorage.getPinHash();
       setState(() {
-        _step = _AuthStep.pinLogin;
+        if ((_storedPhone ?? '').isNotEmpty) {
+          _loginPhoneController.text = _storedPhone!;
+        }
+        _step = _storedPinHash != null ? _AuthStep.pinLogin : _AuthStep.passwordLogin;
       });
     }
   }
@@ -201,7 +219,11 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> _sendSmsCode() async {
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Future<void> _sendRegistrationCode() async {
     if (_isSmsSendDisabled) {
       return;
     }
@@ -220,9 +242,64 @@ class _LoginPageState extends State<LoginPage> {
     _normalizedPhone = normalized;
 
     try {
+      final exists = await _authApi.checkUserByPhone(normalized);
+      if (exists) {
+        if (!mounted) return;
+        setState(() {
+          _loginPhoneController.text = _phoneController.text;
+          _step = _AuthStep.passwordLogin;
+          _errorMessage =
+              'Пользователь с таким номером уже существует. Войдите по паролю.';
+        });
+        return;
+      }
       await _authApi.sendCode(normalized);
       if (!mounted) return;
       setState(() {
+        _isRecoveryCodeFlow = false;
+        _step = _AuthStep.codeVerify;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSmsSendDisabled = false;
+        });
+      }
+      _setLoading(false);
+    }
+  }
+
+  Future<void> _sendRecoveryCode() async {
+    if (_isSmsSendDisabled) {
+      return;
+    }
+
+    final normalized = _normalizePhone(_recoveryPhoneController.text);
+    if (normalized == null) {
+      _setError('Введите номер в международном формате, например +77011234567.');
+      return;
+    }
+
+    _setLoading(true);
+    setState(() {
+      _isSmsSendDisabled = true;
+    });
+    _setError('');
+    _normalizedPhone = normalized;
+
+    try {
+      final exists = await _authApi.checkUserByPhone(normalized);
+      if (!exists) {
+        _setError('Пользователь с таким номером не найден.');
+        return;
+      }
+      await _authApi.sendCode(normalized);
+      if (!mounted) return;
+      setState(() {
+        _isRecoveryCodeFlow = true;
         _step = _AuthStep.codeVerify;
         _errorMessage = null;
       });
@@ -255,13 +332,68 @@ class _LoginPageState extends State<LoginPage> {
       );
       if (!mounted) return;
       if (result) {
+        _dismissKeyboard();
+        final nextStep = _isRecoveryCodeFlow
+            ? _AuthStep.passwordRecoveryNewPassword
+            : _AuthStep.profileInput;
         setState(() {
-          _step = _AuthStep.profileInput;
+          _step = nextStep;
           _errorMessage = null;
         });
+        if (nextStep == _AuthStep.profileInput) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _nameFocusNode.requestFocus();
+          });
+        }
       } else {
         _setError('Неверный код подтверждения.');
       }
+    } catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final password = _recoveryPasswordController.text;
+    final confirm = _recoveryPasswordConfirmController.text;
+    if (password.length < 6) {
+      _setError('Пароль должен содержать минимум 6 символов.');
+      return;
+    }
+    if (password != confirm) {
+      _setError('Пароли не совпадают.');
+      return;
+    }
+    if (_normalizedPhone.isEmpty) {
+      _setError('Не удалось определить номер телефона.');
+      return;
+    }
+    final code = _smsCodeController.text.trim();
+    if (code.length < 4) {
+      _setError('Введите корректный код.');
+      return;
+    }
+
+    _setLoading(true);
+    _setError('');
+    try {
+      await _authApi.resetPassword(
+        phone: _normalizedPhone,
+        code: code,
+        password: password,
+      );
+      if (!mounted) return;
+      setState(() {
+        _loginPhoneController.text = _recoveryPhoneController.text;
+        _loginPasswordController.clear();
+        _step = _AuthStep.passwordLogin;
+        _isRecoveryCodeFlow = false;
+        _errorMessage =
+            'Пароль обновлен. Войдите с новым паролем.';
+      });
     } catch (e) {
       _setError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -336,18 +468,27 @@ class _LoginPageState extends State<LoginPage> {
           phoneNumber: _normalizedPhone,
           name: name,
           password: _rawPassword,
-          passwordHash: _storedPasswordHash!,
-          pin: _pinDraft,
-          pinHash: _hashValue(_pinDraft),
         ),
       );
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-    } catch (_) {
-      _setError('Не удалось завершить регистрацию. Повторите попытку.');
+    } catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       _setLoading(false);
     }
+  }
+
+  void _openPasswordRecovery() {
+    setState(() {
+      _recoveryPhoneController.text = _loginPhoneController.text;
+      _smsCodeController.clear();
+      _recoveryPasswordController.clear();
+      _recoveryPasswordConfirmController.clear();
+      _isRecoveryCodeFlow = false;
+      _step = _AuthStep.passwordRecoveryPhoneInput;
+      _errorMessage = null;
+    });
   }
 
   Future<void> _loginWithPin() async {
@@ -381,10 +522,14 @@ class _LoginPageState extends State<LoginPage> {
         _isSmsSendDisabled = false;
         _isConsentAccepted = false;
         _phoneController.text = '+7';
+        _loginPhoneController.text = '+7';
         _nameController.clear();
         _smsCodeController.clear();
+        _recoveryPasswordController.clear();
+        _recoveryPasswordConfirmController.clear();
         _loginPinController.clear();
         _loginPasswordController.clear();
+        _isRecoveryCodeFlow = false;
       });
     } catch (_) {
       _setError('Не удалось выйти из аккаунта.');
@@ -526,19 +671,44 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildInlineError() {
+    final message = _errorMessage;
+    if (message == null || message.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(message, style: const TextStyle(color: Colors.red)),
+    );
+  }
+
   Future<void> _loginWithPassword() async {
     final password = _loginPasswordController.text;
     if (password.length < 6) {
       _setError('Введите пароль не короче 6 символов.');
       return;
     }
-    final hash = _hashValue(password);
-    if (_storedPasswordHash == null || hash != _storedPasswordHash) {
-      _setError('Неверный пароль.');
+    final normalizedPhone = _normalizePhone(_loginPhoneController.text);
+    if (normalizedPhone == null) {
+      _setError('Введите номер в формате +7XXXXXXXXXX.');
       return;
     }
-    if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+
+    _setLoading(true);
+    _setError('');
+    try {
+      await _registrationService.loginWithPhone(
+        phoneNumber: normalizedPhone,
+        password: password,
+      );
+      _storedPhone = normalizedPhone;
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } catch (e) {
+      _setError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Widget _buildPhoneStep() {
@@ -548,6 +718,11 @@ class _LoginPageState extends State<LoginPage> {
         const Text(
           'Регистрация по номеру телефона',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Проверочный код отправим в WhatsApp. Убедитесь, что вводите номер, на котором активен WhatsApp.',
+          style: TextStyle(fontSize: 13, color: Colors.black54),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -620,22 +795,39 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
         const SizedBox(height: 12),
+        _buildInlineError(),
         ElevatedButton(
           onPressed: _isLoading || _isSmsSendDisabled || !_isConsentAccepted
               ? null
-              : _sendSmsCode,
+              : _sendRegistrationCode,
           child: const Text('Отправить код в WhatsApp'),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: _isLoading
+              ? null
+              : () {
+                  setState(() {
+                    _loginPhoneController.text = _phoneController.text;
+                    _step = _AuthStep.passwordLogin;
+                    _errorMessage = null;
+                  });
+                },
+          child: const Text('Уже зарегистрированы? Войти по паролю'),
         ),
       ],
     );
   }
 
   Widget _buildCodeStep() {
+    final isRecovery = _isRecoveryCodeFlow;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Код отправлен в WhatsApp на $_normalizedPhone',
+          isRecovery
+              ? 'Код для восстановления пароля отправлен в WhatsApp на $_normalizedPhone'
+              : 'Код отправлен в WhatsApp на $_normalizedPhone',
           style: const TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 12),
@@ -648,13 +840,122 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(height: 12),
+        _buildInlineError(),
         ElevatedButton(
           onPressed: _isLoading ? null : _verifySmsCode,
-          child: const Text('Подтвердить код'),
+          child: Text(isRecovery ? 'Подтвердить код и продолжить' : 'Подтвердить код'),
         ),
         TextButton(
-          onPressed: _isLoading ? null : _sendSmsCode,
+          onPressed: _isLoading
+              ? null
+              : (isRecovery ? _sendRecoveryCode : _sendRegistrationCode),
           child: const Text('Отправить код повторно'),
+        ),
+        if (isRecovery)
+          TextButton(
+            onPressed: _isLoading
+                ? null
+                : () {
+                    setState(() {
+                      _step = _AuthStep.passwordRecoveryPhoneInput;
+                      _errorMessage = null;
+                    });
+                  },
+            child: const Text('Изменить номер телефона'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordRecoveryPhoneStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Восстановление пароля',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Проверочный код отправим в WhatsApp. Убедитесь, что вводите номер, на котором активен WhatsApp.',
+          style: TextStyle(fontSize: 13, color: Colors.black54),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _recoveryPhoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [_phoneMaskFormatter],
+          decoration: const InputDecoration(
+            labelText: 'Номер телефона',
+            hintText: '+7 (___) ___-__-__',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildInlineError(),
+        ElevatedButton(
+          onPressed: _isLoading || _isSmsSendDisabled ? null : _sendRecoveryCode,
+          child: const Text('Отправить код в WhatsApp'),
+        ),
+        TextButton(
+          onPressed: _isLoading
+              ? null
+              : () {
+                  setState(() {
+                    _step = _AuthStep.passwordLogin;
+                    _errorMessage = null;
+                  });
+                },
+          child: const Text('Вернуться ко входу'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordRecoveryNewPasswordStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Новый пароль',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Номер: $_normalizedPhone',
+          style: const TextStyle(color: Colors.black54),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _recoveryPasswordController,
+          keyboardType: TextInputType.visiblePassword,
+          textInputAction: TextInputAction.next,
+          enableSuggestions: false,
+          autocorrect: false,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Новый пароль',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _recoveryPasswordConfirmController,
+          keyboardType: TextInputType.visiblePassword,
+          textInputAction: TextInputAction.done,
+          enableSuggestions: false,
+          autocorrect: false,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Подтверждение пароля',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildInlineError(),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _resetPassword,
+          child: const Text('Сохранить новый пароль'),
         ),
       ],
     );
@@ -671,13 +972,17 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 12),
         TextField(
           controller: _nameController,
+          focusNode: _nameFocusNode,
+          keyboardType: TextInputType.name,
           textInputAction: TextInputAction.done,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             labelText: 'Имя',
             border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
+        _buildInlineError(),
         ElevatedButton(
           onPressed: _isLoading ? null : _saveProfileStep,
           child: const Text('Продолжить'),
@@ -721,6 +1026,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(height: 12),
+        _buildInlineError(),
         ElevatedButton(
           onPressed: _isLoading ? null : _savePasswordStep,
           child: const Text('Продолжить'),
@@ -765,6 +1071,7 @@ class _LoginPageState extends State<LoginPage> {
                   },
             child: const Text('Сбросить PIN и ввести заново'),
           ),
+        _buildInlineError(),
         ElevatedButton(
           onPressed:
               _isLoading || _pinDraft.length != 4 || _pinConfirmDraft.length != 4
@@ -801,6 +1108,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(height: 12),
+        _buildInlineError(),
         ElevatedButton(
           onPressed: _isLoading ? null : _loginWithPin,
           child: const Text('Войти'),
@@ -838,6 +1146,17 @@ class _LoginPageState extends State<LoginPage> {
         ],
         const SizedBox(height: 12),
         TextField(
+          controller: _loginPhoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [_phoneMaskFormatter],
+          decoration: const InputDecoration(
+            labelText: 'Номер телефона',
+            hintText: '+7 (___) ___-__-__',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
           controller: _loginPasswordController,
           obscureText: true,
           decoration: const InputDecoration(
@@ -846,20 +1165,33 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         const SizedBox(height: 12),
+        _buildInlineError(),
         ElevatedButton(
           onPressed: _isLoading ? null : _loginWithPassword,
           child: const Text('Войти'),
+        ),
+        TextButton(
+          onPressed: _isLoading ? null : _openPasswordRecovery,
+          child: const Text('Забыли пароль?'),
         ),
         TextButton(
           onPressed: _isLoading
               ? null
               : () {
                   setState(() {
-                    _step = _AuthStep.pinLogin;
+                    if (_storedPinHash != null) {
+                      _step = _AuthStep.pinLogin;
+                    } else {
+                      _step = _AuthStep.phoneInput;
+                    }
                     _errorMessage = null;
                   });
                 },
-          child: const Text('Вернуться ко входу по PIN'),
+          child: Text(
+            _storedPinHash != null
+                ? 'Вернуться ко входу по PIN'
+                : 'Перейти к регистрации',
+          ),
         ),
       ],
     );
@@ -881,6 +1213,10 @@ class _LoginPageState extends State<LoginPage> {
         return _buildPinLoginStep();
       case _AuthStep.passwordLogin:
         return _buildPasswordLoginStep();
+      case _AuthStep.passwordRecoveryPhoneInput:
+        return _buildPasswordRecoveryPhoneStep();
+      case _AuthStep.passwordRecoveryNewPassword:
+        return _buildPasswordRecoveryNewPasswordStep();
     }
   }
 
@@ -901,13 +1237,6 @@ class _LoginPageState extends State<LoginPage> {
                   if (_isLoading) ...[
                     const SizedBox(height: 16),
                     const Center(child: CircularProgressIndicator()),
-                  ],
-                  if ((_errorMessage ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
                   ],
                 ],
               ),
