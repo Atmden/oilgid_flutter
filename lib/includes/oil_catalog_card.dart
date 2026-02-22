@@ -25,7 +25,8 @@ class OilCatalogCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primarySoft,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: () {

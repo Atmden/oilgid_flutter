@@ -26,8 +26,8 @@ class _HomePageState extends State<HomePage> {
             children: const [
               CarInfoCard(),
               SizedBox(height: 16),
-              SelectOilCard(),
-              SizedBox(height: 16),
+              // SelectOilCard(),
+              // SizedBox(height: 16),
               OilCatalogCard(),
               SizedBox(height: 16),
               QuickActions(),

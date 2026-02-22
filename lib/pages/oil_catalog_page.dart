@@ -4,6 +4,7 @@ import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/oils/data/datasources/oil_api.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
+import 'package:oil_gid/pages/oil_catalog_filters_page.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 
 class OilCatalogPage extends StatefulWidget {
@@ -21,48 +22,13 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   String? _error;
-
-  int? _brandId;
-  int? _viscosityId;
-  String? _sort;
-
-  List<CatalogFilterOption> _brandOptions = [];
-  List<CatalogFilterOption> _viscosityOptions = [];
-  bool _filtersLoading = true;
-  bool _filtersExpanded = false;
-
-  static const List<({String label, String? value})> _sortOptions = [
-    (label: 'Без сортировки', value: null),
-    (label: 'По названию', value: 'title'),
-    (label: 'По бренду', value: 'brand_id'),
-    (label: 'По вязкости', value: 'viscosity_id'),
-  ];
+  CatalogFilterState _filterState = const CatalogFilterState();
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _loadFilters();
     _loadFirstPage();
-  }
-
-  Future<void> _loadFilters() async {
-    final api = AppApi().oilApi;
-    try {
-      final results = await Future.wait([
-        api.getCatalogFilterBrands(),
-        api.getCatalogFilterViscosities(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _brandOptions = results[0];
-          _viscosityOptions = results[1];
-          _filtersLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _filtersLoading = false);
-    }
   }
 
   @override
@@ -93,9 +59,13 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
     try {
       final result = await AppApi().oilApi.getOilsCatalog(
         page: 1,
-        brandId: _brandId,
-        viscosityId: _viscosityId,
-        sort: _sort,
+        brandIds: _filterState.brandIds,
+        viscosityIds: _filterState.viscosityIds,
+        apiIds: _filterState.apiIds,
+        aceaIds: _filterState.aceaIds,
+        oemIds: _filterState.oemIds,
+        ilsacIds: _filterState.ilsacIds,
+        sort: _filterState.sort,
       );
       if (mounted) {
         setState(() {
@@ -122,9 +92,13 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
     try {
       final result = await AppApi().oilApi.getOilsCatalog(
         page: nextPage,
-        brandId: _brandId,
-        viscosityId: _viscosityId,
-        sort: _sort,
+        brandIds: _filterState.brandIds,
+        viscosityIds: _filterState.viscosityIds,
+        apiIds: _filterState.apiIds,
+        aceaIds: _filterState.aceaIds,
+        oemIds: _filterState.oemIds,
+        ilsacIds: _filterState.ilsacIds,
+        sort: _filterState.sort,
       );
       if (mounted) {
         setState(() {
@@ -141,30 +115,24 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
     }
   }
 
-  void _onFilterOrSortChanged() {
+  Future<void> _applyFilters(CatalogFilterState nextState) async {
+    if (!mounted) return;
+    setState(() => _filterState = nextState);
     _items.clear();
     _currentPage = 1;
     _hasMore = true;
-    _loadFirstPage();
+    await _loadFirstPage();
   }
 
-  void _resetFilters() {
-    setState(() {
-      _brandId = null;
-      _viscosityId = null;
-      _onFilterOrSortChanged();
-    });
-  }
-
-  bool get _hasActiveFilters => _brandId != null || _viscosityId != null;
-
-  List<({String label, int? value})> _filterOptionsWithAll(
-      List<CatalogFilterOption> options) {
-    final list = <({String label, int? value})>[(label: 'Все', value: null)];
-    for (final o in options) {
-      list.add((label: o.title, value: o.id));
-    }
-    return list;
+  Future<void> _openFilters() async {
+    final result = await Navigator.push<CatalogFilterState>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OilCatalogFiltersPage(initialState: _filterState),
+      ),
+    );
+    if (result == null) return;
+    await _applyFilters(result);
   }
 
   @override
@@ -174,130 +142,53 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: const Text('Каталог масел'),
+        actions: [
+          TextButton.icon(
+            onPressed: _openFilters,
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.tune, color: Colors.white),
+                if (_filterState.selectedFiltersCount > 0)
+                  Positioned(
+                    right: -8,
+                    top: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_filterState.selectedFiltersCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            label: const Text(
+              'Фильтры',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildFiltersAndSort(),
             Expanded(child: _buildBody()),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildFiltersAndSort() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Text(
-                    'Фильтры и сортировка',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    _filtersExpanded ? Icons.expand_less : Icons.expand_more,
-                    size: 24,
-                    color: Colors.black54,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_filtersExpanded) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Text('Сортировка:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String?>(
-                      value: _sort,
-                      isExpanded: true,
-                      hint: const Text('Выберите'),
-                      items: _sortOptions
-                          .map((e) => DropdownMenuItem<String?>(
-                                value: e.value,
-                                child: Text(e.label),
-                              ))
-                          .toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          _sort = value;
-                          _onFilterOrSortChanged();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _FilterDropdown<int?>(
-                    label: 'Бренд',
-                    value: _brandId,
-                    options: _filterOptionsWithAll(_brandOptions),
-                    loading: _filtersLoading,
-                    onChanged: (v) {
-                      setState(() {
-                        _brandId = v;
-                        _onFilterOrSortChanged();
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _FilterDropdown<int?>(
-                    label: 'Вязкость',
-                    value: _viscosityId,
-                    options: _filterOptionsWithAll(_viscosityOptions),
-                    loading: _filtersLoading,
-                    onChanged: (v) {
-                      setState(() {
-                        _viscosityId = v;
-                        _onFilterOrSortChanged();
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (_hasActiveFilters) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _resetFilters,
-                icon: const Icon(Icons.clear_all, size: 18),
-                label: const Text('Сбросить фильтры'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: BorderSide(color: AppColors.border),
-                ),
-              ),
-            ],
-          ],
-        ],
       ),
     );
   }
@@ -410,45 +301,3 @@ class _OilCatalogTile extends StatelessWidget {
   }
 }
 
-class _FilterDropdown<T> extends StatelessWidget {
-  final String label;
-  final T? value;
-  final List<({String label, T? value})> options;
-  final bool loading;
-  final ValueChanged<T?> onChanged;
-
-  const _FilterDropdown({
-    required this.label,
-    required this.value,
-    required this.options,
-    this.loading = false,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-        DropdownButtonHideUnderline(
-          child: DropdownButton<T?>(
-            value: value,
-            isExpanded: true,
-            isDense: true,
-            items: options
-                .map((e) => DropdownMenuItem<T?>(
-                    value: e.value,
-                    child: Text(
-                      e.label,
-                      overflow: TextOverflow.ellipsis,
-                    )))
-                .toList(),
-            onChanged: loading ? null : (T? v) => onChanged(v),
-          ),
-        ),
-      ],
-    );
-  }
-}
