@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oil_gid/core/api/auth_api.dart';
 import 'package:oil_gid/core/api/auth_registration_service.dart';
+import 'package:oil_gid/core/api/user_api.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 
 class _PhoneMaskFormatter extends TextInputFormatter {
@@ -116,6 +117,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _tokenStorage = TokenStorage();
   final _authApi = AuthApi();
+  final _userApi = UserApi();
   final _registrationService = AuthRegistrationService();
 
   final _phoneController = TextEditingController();
@@ -221,6 +223,31 @@ class _LoginPageState extends State<LoginPage> {
 
   void _dismissKeyboard() {
     FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Future<void> _refreshProfileCache({
+    String? fallbackName,
+    String? fallbackPhone,
+  }) async {
+    try {
+      final profile = await _userApi.getProfile();
+      await _tokenStorage.saveUserProfile(profile);
+      return;
+    } catch (_) {
+      final cached = await _tokenStorage.getUserProfile() ?? <String, dynamic>{};
+      final merged = <String, dynamic>{...cached};
+      final cleanName = fallbackName?.trim() ?? '';
+      final cleanPhone = fallbackPhone?.trim() ?? '';
+      if (cleanName.isNotEmpty) {
+        merged['name'] = cleanName;
+      }
+      if (cleanPhone.isNotEmpty) {
+        merged['phone'] = cleanPhone;
+      }
+      if (merged.isNotEmpty) {
+        await _tokenStorage.saveUserProfile(merged);
+      }
+    }
   }
 
   Future<void> _sendRegistrationCode() async {
@@ -470,6 +497,10 @@ class _LoginPageState extends State<LoginPage> {
           password: _rawPassword,
         ),
       );
+      await _refreshProfileCache(
+        fallbackName: name,
+        fallbackPhone: _normalizedPhone,
+      );
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
@@ -702,6 +733,7 @@ class _LoginPageState extends State<LoginPage> {
         password: password,
       );
       _storedPhone = normalizedPhone;
+      await _refreshProfileCache(fallbackPhone: normalizedPhone);
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {

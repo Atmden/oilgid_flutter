@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenStorage {
@@ -7,6 +9,7 @@ class TokenStorage {
   static const _pinHashKey = 'pin_hash';
   static const _registeredPhoneKey = 'registered_phone';
   static const _phoneRegistrationCompletedKey = 'phone_registration_completed';
+  static const _userProfileKey = 'user_profile';
 
   final _storage = const FlutterSecureStorage();
 
@@ -28,6 +31,7 @@ class TokenStorage {
 
   Future<void> clearUser() async {
     await _storage.delete(key: _userTokenKey);
+    await _storage.delete(key: _userProfileKey);
   }
 
   Future<void> savePasswordHash(String hash) async {
@@ -65,11 +69,39 @@ class TokenStorage {
     return (await _storage.read(key: _phoneRegistrationCompletedKey)) == 'true';
   }
 
+  Future<void> saveUserProfile(Map<String, dynamic> profile) async {
+    await _storage.write(key: _userProfileKey, value: jsonEncode(profile));
+  }
+
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    final raw = await _storage.read(key: _userProfileKey);
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+      if (decoded is Map) {
+        return decoded.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  Future<void> clearUserProfile() async {
+    await _storage.delete(key: _userProfileKey);
+  }
+
   Future<void> clearPhoneRegistrationData() async {
     await _storage.delete(key: _passwordHashKey);
     await _storage.delete(key: _pinHashKey);
     await _storage.delete(key: _registeredPhoneKey);
     await _storage.delete(key: _phoneRegistrationCompletedKey);
     await _storage.delete(key: _userTokenKey);
+    await _storage.delete(key: _userProfileKey);
   }
 }

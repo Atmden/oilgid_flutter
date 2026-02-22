@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:oil_gid/core/storage/token_storage.dart';
 import 'package:oil_gid/lang/ru.dart';
 import 'package:oil_gid/model/NavigationItem.dart';
 import 'package:oil_gid/pages/about.dart';
@@ -8,8 +9,34 @@ import 'package:oil_gid/pages/blog.dart';
 import 'package:oil_gid/pages/home_page.dart';
 import 'package:oil_gid/themes/default.dart';
 
-class Navigationdrawer extends StatelessWidget {
+class Navigationdrawer extends StatefulWidget {
   const Navigationdrawer({super.key});
+
+  @override
+  State<Navigationdrawer> createState() => _NavigationdrawerState();
+}
+
+class _NavigationdrawerState extends State<Navigationdrawer> {
+  late final Future<_DrawerHeaderData> _headerDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _headerDataFuture = _loadHeaderData();
+  }
+
+  Future<_DrawerHeaderData> _loadHeaderData() async {
+    final token = await TokenStorage().getUserToken();
+    if (token == null || token.trim().isEmpty) {
+      return const _DrawerHeaderData(isLoggedIn: false, userName: '');
+    }
+    final profile = await TokenStorage().getUserProfile();
+    final name = (profile?['name'] ?? '').toString().trim();
+    return _DrawerHeaderData(
+      isLoggedIn: true,
+      userName: name.isEmpty ? 'Пользователь' : name,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +47,20 @@ class Navigationdrawer extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 50, 24, 0),
           child: Column(
             children: [
-              headerWidget(context, false),
+              FutureBuilder<_DrawerHeaderData>(
+                future: _headerDataFuture,
+                builder: (context, snapshot) {
+                  final headerData = snapshot.data;
+                  if (headerData == null) {
+                    return headerGuest(context);
+                  }
+                  return headerWidget(
+                    context,
+                    headerData.isLoggedIn,
+                    userName: headerData.userName,
+                  );
+                },
+              ),
               const SizedBox(height: 1),
               const Divider(thickness: 1, height: 10, color: Colors.grey),
               const SizedBox(height: 20),
@@ -87,6 +127,9 @@ class Navigationdrawer extends StatelessWidget {
           MaterialPageRoute(builder: (context) => const Blog()),
         );
         break;
+      case '3':
+        Navigator.pushNamed(context, '/profile');
+        break;
       case 'about':
         Navigator.push(
           context,
@@ -96,9 +139,9 @@ class Navigationdrawer extends StatelessWidget {
     }
   }
 
-  Widget headerWidget(BuildContext context, bool isLoggedIn) {
+  Widget headerWidget(BuildContext context, bool isLoggedIn, {String? userName}) {
     if (isLoggedIn) {
-      return headerUser();
+      return headerUser(context, userName: userName ?? 'Пользователь');
     } else {
       return headerGuest(context);
     }
@@ -145,42 +188,59 @@ class Navigationdrawer extends StatelessWidget {
     );
   }
 
-  Widget headerUser() {
+  Widget headerUser(BuildContext context, {required String userName}) {
     const url = 'https://picsum.photos/200';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            child: ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: url,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Icon(Icons.error),
+    return InkWell(
+      onTap: () {
+        Navigator.popAndPushNamed(context, '/profile');
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 40,
+              child: ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => const CircularProgressIndicator(),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                ),
               ),
             ),
-          ),
-          SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Denis',
-                style: TextStyle(fontSize: 14, color: Colors.white),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userName,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Перейти в профиль',
+                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                ],
               ),
-              SizedBox(height: 10),
-              Text(
-                '+77057505444',
-                style: TextStyle(fontSize: 14, color: Colors.white),
-              ),
-            ],
-          ),
-        ],
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 18),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _DrawerHeaderData {
+  final bool isLoggedIn;
+  final String userName;
+
+  const _DrawerHeaderData({required this.isLoggedIn, required this.userName});
 }
