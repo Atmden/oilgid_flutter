@@ -9,6 +9,7 @@ import 'package:oil_gid/pages/home_page.dart';
 import 'package:oil_gid/pages/login.dart';
 import 'package:oil_gid/pages/map_screen.dart';
 import 'package:oil_gid/pages/oil_details.dart';
+import 'package:oil_gid/pages/oil_catalog_page.dart';
 import 'package:oil_gid/pages/oil_list.dart';
 import 'package:oil_gid/pages/oil_shops_map_page.dart';
 import 'package:oil_gid/pages/profile_page.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginPage(),
         '/car_select': (context) => CarSelectScreen(),
         '/car_show_selected': (context) => CarShowSelected(),
+        '/oil_catalog': (context) => const OilCatalogPage(),
         '/oil_list': (context) => OilListPage(),
         '/oil_details': (context) => OilDetailsPage(),
         '/blog': (context) => Blog(),
