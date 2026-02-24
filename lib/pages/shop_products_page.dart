@@ -138,13 +138,16 @@ class _ProductTile extends StatelessWidget {
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: CachedNetworkImage(
-                    imageUrl: item.thumb,
-                    fit: BoxFit.contain,
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 24, height: 24),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.oil_barrel),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(color: Colors.white),
+                    child: CachedNetworkImage(
+                      imageUrl: item.thumb,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) =>
+                          const SizedBox(width: 24, height: 24),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.oil_barrel),
+                    ),
                   ),
                 ),
               )

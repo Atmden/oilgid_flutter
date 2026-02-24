@@ -6,11 +6,7 @@ class OilGallery extends StatefulWidget {
   final List<String> images;
   final void Function(int index)? onTap;
 
-  const OilGallery({
-    super.key,
-    required this.images,
-    this.onTap,
-  });
+  const OilGallery({super.key, required this.images, this.onTap});
 
   @override
   State<OilGallery> createState() => _OilGalleryState();
@@ -102,4 +98,3 @@ class _OilGalleryState extends State<OilGallery> {
     );
   }
 }
-

@@ -59,12 +59,7 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
     try {
       final result = await AppApi().oilApi.getOilsCatalog(
         page: 1,
-        brandIds: _filterState.brandIds,
-        viscosityIds: _filterState.viscosityIds,
-        apiIds: _filterState.apiIds,
-        aceaIds: _filterState.aceaIds,
-        oemIds: _filterState.oemIds,
-        ilsacIds: _filterState.ilsacIds,
+        selectedFacetIds: _filterState.selectedFacetIds,
         sort: _filterState.sort,
       );
       if (mounted) {
@@ -92,12 +87,7 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
     try {
       final result = await AppApi().oilApi.getOilsCatalog(
         page: nextPage,
-        brandIds: _filterState.brandIds,
-        viscosityIds: _filterState.viscosityIds,
-        apiIds: _filterState.apiIds,
-        aceaIds: _filterState.aceaIds,
-        oemIds: _filterState.oemIds,
-        ilsacIds: _filterState.ilsacIds,
+        selectedFacetIds: _filterState.selectedFacetIds,
         sort: _filterState.sort,
       );
       if (mounted) {
@@ -174,10 +164,7 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
                   ),
               ],
             ),
-            label: const Text(
-              'Фильтры',
-              style: TextStyle(color: Colors.white),
-            ),
+            label: const Text('Фильтры', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -185,9 +172,7 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _buildBody()),
-          ],
+          children: [Expanded(child: _buildBody())],
         ),
       ),
     );
@@ -204,7 +189,10 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Не удалось загрузить каталог', textAlign: TextAlign.center),
+              const Text(
+                'Не удалось загрузить каталог',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () {
@@ -241,7 +229,11 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
             Navigator.pushNamed(
               context,
               '/oil_details',
-              arguments: OilDetailsArgs(item: _items[index], volume: '', description: ''),
+              arguments: OilDetailsArgs(
+                item: _items[index],
+                volume: '',
+                description: '',
+              ),
             );
           },
         );
@@ -262,6 +254,7 @@ class _OilCatalogTile extends StatelessWidget {
     if (item.brandTitle.isNotEmpty) subtitleParts.add(item.brandTitle);
     if (item.viscosityTitle.isNotEmpty) subtitleParts.add(item.viscosityTitle);
     final subtitle = subtitleParts.join(' • ');
+    final previewUrl = item.images.isNotEmpty ? item.images.first : item.thumb;
 
     return Container(
       decoration: BoxDecoration(
@@ -271,19 +264,23 @@ class _OilCatalogTile extends StatelessWidget {
       ),
       child: ListTile(
         onTap: onTap,
-        leading: item.thumb.isNotEmpty
+        leading: previewUrl.isNotEmpty
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: CachedNetworkImage(
-                    imageUrl: item.thumb,
-                    fit: BoxFit.contain,
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 24, height: 24),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.oil_barrel),
+                  child: Container(
+                    color: Colors.white,
+                    alignment: Alignment.center,
+                    child: CachedNetworkImage(
+                      imageUrl: previewUrl,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) =>
+                          const SizedBox(width: 24, height: 24),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.oil_barrel),
+                    ),
                   ),
                 ),
               )
@@ -300,4 +297,3 @@ class _OilCatalogTile extends StatelessWidget {
     );
   }
 }
-

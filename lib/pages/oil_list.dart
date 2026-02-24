@@ -49,9 +49,9 @@ class _OilListPageState extends ConsumerState<OilListPage> {
   }
 
   Future<List<OilItem>> _fetchItems() async {
-    final types = await AppApi()
-        .oilApi
-        .getOilsByModification(modificationId: _modificationId!);
+    final types = await AppApi().oilApi.getOilsByModification(
+      modificationId: _modificationId!,
+    );
 
     final matched = types.firstWhere(
       (type) => type.oilTypeId == _oilTypeId,
@@ -101,9 +101,7 @@ class _OilListPageState extends ConsumerState<OilListPage> {
                     ),
                   ),
                 ),
-              Expanded(
-                child: _buildListContent(),
-              ),
+              Expanded(child: _buildListContent()),
             ],
           ),
         ),
@@ -173,7 +171,11 @@ class _OilListPageState extends ConsumerState<OilListPage> {
               Navigator.pushNamed(
                 context,
                 '/oil_details',
-                arguments: OilDetailsArgs(item: item, volume: _oilTypeVolume, description: _oilTypeDescription),
+                arguments: OilDetailsArgs(
+                  item: item,
+                  volume: _oilTypeVolume,
+                  description: _oilTypeDescription,
+                ),
               );
             },
             leading: item.thumb.isNotEmpty
@@ -182,13 +184,16 @@ class _OilListPageState extends ConsumerState<OilListPage> {
                     child: SizedBox(
                       width: 48,
                       height: 48,
-                      child: CachedNetworkImage(
-                        imageUrl: item.thumb,
-                        fit: BoxFit.contain,
-                        placeholder: (context, url) =>
-                            const SizedBox(width: 24, height: 24),
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.oil_barrel),
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(color: Colors.white),
+                        child: CachedNetworkImage(
+                          imageUrl: item.thumb,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) =>
+                              const SizedBox(width: 24, height: 24),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.oil_barrel),
+                        ),
                       ),
                     ),
                   )

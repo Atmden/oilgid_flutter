@@ -103,7 +103,10 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            OilGallery(images: images, onTap: (index) => _openGallery(images, index)),
+            OilGallery(
+              images: images,
+              onTap: (index) => _openGallery(images, index),
+            ),
             const SizedBox(height: 16),
             InfoBlock(
               title: 'Характеристики',
@@ -168,15 +171,12 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                     ),
                     SizedBox(height: 10),
                     ElevatedButton(
-                      
                       onPressed: () {
                         _shopsFuture!.then((shops) {
                           Navigator.pushNamed(
                             context,
                             '/map',
-                            arguments: OilShopsMapArgs(
-                              shops: shops,
-                            ),
+                            arguments: OilShopsMapArgs(shops: shops),
                           );
                         });
                       },
@@ -203,13 +203,18 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                             child: SizedBox(
                               width: 56,
                               height: 56,
-                              child: CachedNetworkImage(
-                                imageUrl: item.brand!.logo,
-                                fit: BoxFit.contain,
-                                placeholder: (context, url) =>
-                                    const SizedBox(width: 24, height: 24),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(Icons.business),
+                              child: DecoratedBox(
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                ),
+                                child: CachedNetworkImage(
+                                  imageUrl: item.brand!.logo,
+                                  fit: BoxFit.contain,
+                                  placeholder: (context, url) =>
+                                      const SizedBox(width: 24, height: 24),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.business),
+                                ),
                               ),
                             ),
                           ),
@@ -261,8 +266,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   }
 }
 
-
-
 class _OilGalleryViewer extends StatefulWidget {
   final List<String> images;
   final int initialIndex;
@@ -303,7 +306,11 @@ class _OilGalleryViewerState extends State<_OilGalleryViewer> {
           return InteractiveViewer(
             minScale: 1,
             maxScale: 4,
-            child: Center(
+            child: Container(
+              color: Colors.white,
+              alignment: Alignment.center,
+              width: double.infinity,
+              height: double.infinity,
               child: CachedNetworkImage(
                 imageUrl: widget.images[index],
                 fit: BoxFit.contain,
