@@ -30,7 +30,7 @@ class _HomePageState extends State<HomePage> {
               // SizedBox(height: 16),
               OilCatalogCard(),
               SizedBox(height: 16),
-              QuickActions(),
+              // QuickActions(),
             ],
           ),
         ),

@@ -18,23 +18,28 @@ class CatalogFilterState {
   final Map<String, List<int>> selectedFacetIds;
   final Map<String, String> facetSearch;
   final String? sort;
+  final String? search;
 
   const CatalogFilterState({
     this.selectedFacetIds = const {},
     this.facetSearch = const {},
     this.sort,
+    this.search,
   });
 
   CatalogFilterState copyWith({
     Map<String, List<int>>? selectedFacetIds,
     Map<String, String>? facetSearch,
     String? sort,
+    String? search,
     bool clearSort = false,
+    bool clearSearch = false,
   }) {
     return CatalogFilterState(
       selectedFacetIds: selectedFacetIds ?? this.selectedFacetIds,
       facetSearch: facetSearch ?? this.facetSearch,
       sort: clearSort ? null : (sort ?? this.sort),
+      search: clearSearch ? null : (search ?? this.search),
     );
   }
 
@@ -125,10 +130,12 @@ class OilApi {
     required int page,
     Map<String, List<int>>? selectedFacetIds,
     String? sort,
+    String? search,
   }) async {
     final queryParams = <String, dynamic>{'page': page};
     _appendSelectedFacetIds(queryParams, selectedFacetIds);
     if (sort != null && sort.isNotEmpty) queryParams['sort'] = sort;
+    _appendSearch(queryParams, search);
 
     final response = await dio.get(
       Endpoints.oilsCatalog,
@@ -167,9 +174,11 @@ class OilApi {
     int defaultFacetLimit = 50,
     String? sort,
     int? page,
+    String? search,
   }) async {
     final queryParams = <String, dynamic>{};
     _appendSelectedFacetIds(queryParams, selectedFacetIds);
+    _appendSearch(queryParams, search);
     _appendFacetSearch(queryParams, facetSearch);
     _appendFacetLimit(
       queryParams,
@@ -251,6 +260,12 @@ class OilApi {
       if (limit <= 0) return;
       queryParams['facet_limit[$facetKey]'] = limit;
     });
+  }
+
+  void _appendSearch(Map<String, dynamic> queryParams, String? search) {
+    final normalized = search?.trim();
+    if (normalized == null || normalized.isEmpty) return;
+    queryParams['search'] = normalized;
   }
 
   Future<List<CatalogFilterOption>> getCatalogFilterBrands() async {

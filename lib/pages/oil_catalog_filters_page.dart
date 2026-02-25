@@ -96,6 +96,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
         facetSearch: _normalizedFacetSearch,
         facetLimit: _facetLimitMap,
         sort: _state.sort,
+        search: _state.search,
       );
       if (!mounted || requestId != _lastRequestId) return;
 

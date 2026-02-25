@@ -142,14 +142,19 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                 ],
               ),
             ),
-
-            if (_shopsFuture != null) ...[
-              const SizedBox(height: 16),
-
+            if (item.description.isNotEmpty) const SizedBox(height: 12),
+            if (item.description.isNotEmpty)
               InfoBlock(
-                title: 'Ближайшие магазины',
-                child: Column(
-                  children: [
+                title: 'Описание',
+                child: Text(item.description, textAlign: TextAlign.justify),
+              ),
+            const SizedBox(height: 16),
+
+            InfoBlock(
+              title: 'Где купить',
+              child: Column(
+                children: [
+                  if (_shopsFuture != null) ...[
                     FutureBuilder<List<Shop>>(
                       future: _shopsFuture,
                       builder: (context, snapshot) {
@@ -170,22 +175,36 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                       },
                     ),
                     SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        _shopsFuture!.then((shops) {
-                          Navigator.pushNamed(
-                            context,
-                            '/map',
-                            arguments: OilShopsMapArgs(shops: shops),
+                    if (_shopsFuture != null) ...[
+                      FutureBuilder<List<Shop>>(
+                        future: _shopsFuture,
+                        builder: (context, snapshot) {
+                          final shops = snapshot.data ?? [];
+                          if (snapshot.connectionState !=
+                                  ConnectionState.done ||
+                              shops.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return ElevatedButton(
+                            onPressed: () {
+                              _shopsFuture!.then((shops) {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/map',
+                                  arguments: OilShopsMapArgs(shops: shops),
+                                );
+                              });
+                            },
+                            child: const Text('Показать магазины на карте'),
                           );
-                        });
-                      },
-                      child: const Text('Показать магазины на карте'),
-                    ),
+                        },
+                      ),
+                    ],
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
+
             const SizedBox(height: 12),
             if (item.brand != null &&
                 (item.brand!.logo.isNotEmpty ||
@@ -243,12 +262,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                       ),
                   ],
                 ),
-              ),
-            if (item.description.isNotEmpty) const SizedBox(height: 12),
-            if (item.description.isNotEmpty)
-              InfoBlock(
-                title: 'Описание',
-                child: Text(item.description, textAlign: TextAlign.justify),
               ),
           ],
         ),
