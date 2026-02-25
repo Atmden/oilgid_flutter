@@ -57,5 +57,9 @@
 		<string>Нам нужна геолокация, чтобы показать ближайшие магазины.</string>
 		<key>YANDEX_MAPKIT_API_KEY</key>
 		<string>${YANDEX_MAPKIT_API_KEY}</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
+		<key>ITSEncryptionExportComplianceCode</key>
+		<string>0</string>
 </dict>
 </plist>
