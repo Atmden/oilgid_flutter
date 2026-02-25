@@ -7,3 +7,9 @@ class OilShopsMapArgs {
 
   OilShopsMapArgs({required this.shops, this.userLat, this.userLng});
 }
+
+class ShopPageArgs {
+  final Shop shop;
+
+  ShopPageArgs({required this.shop});
+}

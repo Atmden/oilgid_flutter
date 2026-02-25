@@ -3,12 +3,13 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oil_gid/core/utils/navigation_launcher.dart';
 import 'package:oil_gid/core/utils/yandex_map_utils.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/providers/oil_provider.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_gallery.dart';
 import 'package:oil_gid/features/shops/domain/entities/shop.dart';
-import 'package:oil_gid/features/shops/presentation/shop_products_route_args.dart';
+import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_approvals_group.dart';
@@ -328,18 +329,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
 
                     const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: NavigationLauncher.canBuildRoute(
+                            lat: shop.lat,
+                            lng: shop.lng,
+                            address: shop.address,
+                          )
+                          ? () => NavigationLauncher.openRoute(
+                                context: this.context,
+                                shopName: shop.name,
+                                lat: shop.lat,
+                                lng: shop.lng,
+                                address: shop.address,
+                              )
+                          : null,
+                      child: const Text('Проложить маршрут'),
+                    ),
+                    const SizedBox(height: 8),
                     OutlinedButton(
                       onPressed: () {
                         Navigator.of(context).pop();
                         Navigator.of(this.context).pushNamed(
-                          '/shop_products',
-                          arguments: ShopProductsArgs(
-                            shopId: shop.id,
-                            shopName: shop.name,
-                          ),
+                          '/shop',
+                          arguments: ShopPageArgs(shop: shop),
                         );
                       },
-                      child: const Text('Посмотреть все товары магазина'),
+                      child: const Text('Открыть магазин'),
                     ),
                   ],
                 ),

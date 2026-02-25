@@ -117,6 +117,7 @@ class _ProductTile extends StatelessWidget {
     if (item.brandTitle.isNotEmpty) subtitleParts.add(item.brandTitle);
     if (item.viscosityTitle.isNotEmpty) subtitleParts.add(item.viscosityTitle);
     final subtitle = subtitleParts.join(' • ');
+    final previewUrl = item.images.isNotEmpty ? item.images.first : item.thumb;
 
     return Container(
       decoration: BoxDecoration(
@@ -132,16 +133,17 @@ class _ProductTile extends StatelessWidget {
             arguments: OilDetailsArgs(item: item, volume: '', description: ''),
           );
         },
-        leading: item.thumb.isNotEmpty
+        leading: previewUrl.isNotEmpty
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(color: Colors.white),
+                  child: Container(
+                    color: Colors.white,
+                    alignment: Alignment.center,
                     child: CachedNetworkImage(
-                      imageUrl: item.thumb,
+                      imageUrl: previewUrl,
                       fit: BoxFit.contain,
                       placeholder: (context, url) =>
                           const SizedBox(width: 24, height: 24),

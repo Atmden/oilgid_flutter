@@ -2,21 +2,23 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/oils/data/datasources/oil_api.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
+import 'package:oil_gid/features/oils/presentation/providers/oil_provider.dart';
 import 'package:oil_gid/pages/oil_catalog_filters_page.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 
-class OilCatalogPage extends StatefulWidget {
+class OilCatalogPage extends ConsumerStatefulWidget {
   const OilCatalogPage({super.key});
 
   @override
-  State<OilCatalogPage> createState() => _OilCatalogPageState();
+  ConsumerState<OilCatalogPage> createState() => _OilCatalogPageState();
 }
 
-class _OilCatalogPageState extends State<OilCatalogPage> {
+class _OilCatalogPageState extends ConsumerState<OilCatalogPage> {
   static const int _searchDebounceMs = 400;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
@@ -316,15 +318,17 @@ class _OilCatalogPageState extends State<OilCatalogPage> {
             child: Center(child: CircularProgressIndicator()),
           );
         }
+        final item = _items[index];
         return _OilCatalogTile(
-          item: _items[index],
+          item: item,
           onTap: () {
             _unfocusSearch();
+            ref.read(selectedOilProvider.notifier).state = item;
             Navigator.pushNamed(
               context,
               '/oil_details',
               arguments: OilDetailsArgs(
-                item: _items[index],
+                item: item,
                 volume: '',
                 description: '',
               ),
