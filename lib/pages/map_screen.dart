@@ -3,13 +3,17 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/core/utils/navigation_launcher.dart';
 import 'package:oil_gid/core/utils/yandex_map_utils.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/providers/oil_provider.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_gallery.dart';
+import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.dart';
 import 'package:oil_gid/features/shops/domain/entities/shop.dart';
+import 'package:oil_gid/features/shops/domain/entities/shop_details.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
+import 'package:oil_gid/features/shops/presentation/widgets/shop_gallery.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_approvals_group.dart';
@@ -26,6 +30,7 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   final mapControllerCompleter = Completer<YandexMapController>();
   final Map<int, BitmapDescriptor> _clusterIconCache = {};
+  final _shopRepository = ShopRepositoryImpl(AppApi().shopModelApi);
 
   static const int _clusterMinZoom = 13;
   static const double _clusterRadius = 60;
@@ -178,6 +183,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // ---------------------------------------------------------------------------
 
   void _showShopBottomSheet(Shop shop) {
+    Future<ShopDetails> detailsFuture = _shopRepository.getShopDetails(
+      shopId: shop.id,
+    );
+    final product = ref.read(selectedOilProvider);
+    final productImages = product?.resolveImages() ?? [];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -189,181 +200,252 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             maxChildSize: 0.95,
             expand: false,
             builder: (context, scrollController) {
-              final product = ref.watch(selectedOilProvider);
-              final images = product?.resolveImages() ?? [];
+              return StatefulBuilder(
+                builder: (context, setModalState) {
+                  return FutureBuilder<ShopDetails>(
+                    future: detailsFuture,
+                    builder: (context, snapshot) {
+                      final details = snapshot.data;
+                      final shopName = _resolvedText(details?.name, shop.name);
+                      final address = _resolvedText(details?.address, shop.address);
+                      final phone = _resolvedOptional(details?.phone, shop.phone);
+                      final email = _resolvedOptional(details?.email, shop.email);
+                      final website = _resolvedOptional(
+                        details?.website,
+                        shop.website,
+                      );
+                      final routeLat = details?.lat ?? shop.lat;
+                      final routeLng = details?.lng ?? shop.lng;
+                      final gallery = details?.gallery ?? const <ShopGalleryImage>[];
 
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 16),
+                      return Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[400],
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                      ),
-                    ),
-
-                    Text(
-                      shop.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    _infoRow('Адрес', shop.address, 'address'),
-                    _infoRow('Телефон', shop.phone, 'phone'),
-                    _infoRow('Email', shop.email, 'email'),
-                    _infoRow('Сайт', shop.website, 'website'),
-
-                    if (shop.price != null)
-                      _infoRow('Цена', shop.price!.toStringAsFixed(2), 'price'),
-
-                    if (shop.quantity != null)
-                      _infoRow('Наличие', shop.quantity.toString(), 'quantity'),
-
-                    if (shop.distanceM != null)
-                      _infoRow('Расстояние', '${shop.distanceM} м', 'distance'),
-
-                    Column(
-                      children: [
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Товар который вы смотрели',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          product?.title ?? 'Нет данных',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        OilGallery(images: images),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Характеристики',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        InfoRow(
-                          label: 'Бренд',
-                          value: product?.brandTitle ?? '',
-                        ),
-                        InfoRow(
-                          label: 'Вязкость',
-                          value: product?.viscosityTitle ?? '',
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Допуски',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (product?.specification != null)
-                          ApprovalsGroup(
-                            title: 'ACEA',
-                            values: product!.specification!.aceas,
-                          ),
-                        if (product?.specification != null)
-                          ApprovalsGroup(
-                            title: 'API',
-                            values: product!.specification!.apis,
-                          ),
-                        if (product?.specification != null)
-                          ApprovalsGroup(
-                            title: 'OEM',
-                            values: product!.specification!.oemApprovals,
-                          ),
-                        if (product?.specification != null)
-                          ApprovalsGroup(
-                            title: 'ILSAC',
-                            values: product!.specification!.ilsacs,
-                          ),
-                        const SizedBox(height: 12),
-                        if (product?.description != null)
-                          const Text(
-                            'Описание',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 36,
+                                height: 4,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[400],
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
                             ),
-                          ),
-                        const SizedBox(height: 8),
-                        if (product?.description != null)
-                          Text(
-                            product!.description,
-                            style: const TextStyle(fontSize: 14),
-                            textAlign: TextAlign.justify,
-                          ),
-                        const SizedBox(height: 12),
-                      ],
-                    ),
+                            if (snapshot.connectionState == ConnectionState.waiting &&
+                                !snapshot.hasData)
+                              const Padding(
+                                padding: EdgeInsets.only(bottom: 12),
+                                child: Center(child: CircularProgressIndicator()),
+                              ),
+                            if (snapshot.hasError && !snapshot.hasData)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Не удалось загрузить данные магазина',
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        setModalState(() {
+                                          detailsFuture = _shopRepository
+                                              .getShopDetails(shopId: shop.id);
+                                        });
+                                      },
+                                      child: const Text('Повторить'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (gallery.isNotEmpty) ...[
+                              const Text(
+                                'Фотографии магазина',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ShopGallery(gallery: gallery),
+                              const SizedBox(height: 12),
+                            ],
+                            Text(
+                              shopName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
 
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: NavigationLauncher.canBuildRoute(
-                            lat: shop.lat,
-                            lng: shop.lng,
-                            address: shop.address,
-                          )
-                          ? () => NavigationLauncher.openRoute(
-                                context: this.context,
-                                shopName: shop.name,
-                                lat: shop.lat,
-                                lng: shop.lng,
-                                address: shop.address,
-                              )
-                          : null,
-                      child: const Text('Проложить маршрут'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(this.context).pushNamed(
-                          '/shop',
-                          arguments: ShopPageArgs(shop: shop),
-                        );
-                      },
-                      child: const Text('Открыть магазин'),
-                    ),
-                  ],
-                ),
+                            _infoRow('Адрес', address, 'address'),
+                            _infoRow('Телефон', phone, 'phone'),
+                            _infoRow('Email', email, 'email'),
+                            _infoRow('Сайт', website, 'website'),
+
+                            if (shop.price != null)
+                              _infoRow('Цена', shop.price!.toStringAsFixed(2), 'price'),
+
+                            if (shop.quantity != null)
+                              _infoRow('Наличие', shop.quantity.toString(), 'quantity'),
+
+                            if (shop.distanceM != null)
+                              _infoRow('Расстояние', '${shop.distanceM} м', 'distance'),
+
+                            Column(
+                              children: [
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Товар который вы смотрели',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  product?.title ?? 'Нет данных',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blueAccent,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                OilGallery(images: productImages),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Характеристики',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                InfoRow(
+                                  label: 'Бренд',
+                                  value: product?.brandTitle ?? '',
+                                ),
+                                InfoRow(
+                                  label: 'Вязкость',
+                                  value: product?.viscosityTitle ?? '',
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Допуски',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (product?.specification != null)
+                                  ApprovalsGroup(
+                                    title: 'ACEA',
+                                    values: product!.specification!.aceas,
+                                  ),
+                                if (product?.specification != null)
+                                  ApprovalsGroup(
+                                    title: 'API',
+                                    values: product!.specification!.apis,
+                                  ),
+                                if (product?.specification != null)
+                                  ApprovalsGroup(
+                                    title: 'OEM',
+                                    values: product!.specification!.oemApprovals,
+                                  ),
+                                if (product?.specification != null)
+                                  ApprovalsGroup(
+                                    title: 'ILSAC',
+                                    values: product!.specification!.ilsacs,
+                                  ),
+                                const SizedBox(height: 12),
+                                if (product?.description != null)
+                                  const Text(
+                                    'Описание',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                const SizedBox(height: 8),
+                                if (product?.description != null)
+                                  Text(
+                                    product!.description,
+                                    style: const TextStyle(fontSize: 14),
+                                    textAlign: TextAlign.justify,
+                                  ),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: NavigationLauncher.canBuildRoute(
+                                    lat: routeLat,
+                                    lng: routeLng,
+                                    address: address,
+                                  )
+                                  ? () => NavigationLauncher.openRoute(
+                                        context: this.context,
+                                        shopName: shopName,
+                                        lat: routeLat,
+                                        lng: routeLng,
+                                        address: address,
+                                      )
+                                  : null,
+                              child: const Text('Проложить маршрут'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                Navigator.of(this.context).pushNamed(
+                                  '/shop',
+                                  arguments: ShopPageArgs(shop: shop),
+                                );
+                              },
+                              child: const Text('Открыть магазин'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
               );
             },
           ),
         );
       },
     );
+  }
+
+  String _resolvedText(String? primary, String fallback) {
+    final normalizedPrimary = primary?.trim() ?? '';
+    if (normalizedPrimary.isNotEmpty) return normalizedPrimary;
+    return fallback;
+  }
+
+  String? _resolvedOptional(String? primary, String? fallback) {
+    final normalizedPrimary = primary?.trim() ?? '';
+    if (normalizedPrimary.isNotEmpty) return normalizedPrimary;
+    final normalizedFallback = fallback?.trim() ?? '';
+    return normalizedFallback.isEmpty ? null : normalizedFallback;
   }
 
   // ---------------------------------------------------------------------------

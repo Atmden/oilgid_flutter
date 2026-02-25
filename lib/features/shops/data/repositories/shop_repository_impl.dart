@@ -1,4 +1,5 @@
 import '../../domain/entities/shop.dart';
+import '../../domain/entities/shop_details.dart';
 import '../../../oils/domain/entities/oil_item.dart';
 import '../../domain/repositories/shop_repository.dart';
 import '../datasource/shop_model_api.dart';
@@ -21,5 +22,10 @@ class ShopRepositoryImpl implements ShopRepository {
   @override
   Future<List<OilItem>> getShopProducts({required int shopId}) {
     return api.getShopProducts(shopId: shopId);
+  }
+
+  @override
+  Future<ShopDetails> getShopDetails({required int shopId}) {
+    return api.getShopDetails(shopId: shopId);
   }
 }

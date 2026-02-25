@@ -43,4 +43,7 @@ class Endpoints {
   // shop products
   static const shopProducts = '/shops/{shop_id}/products';
 
+  // shop details
+  static const shopDetails = '/shops/{shop_id}';
+
 }

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../oils/domain/entities/oil_item.dart';
 import '../../../oils/data/models/oil_item_model.dart';
 import '../models/shop_model.dart';
+import '../models/shop_details_model.dart';
 
 class ShopModelApi {
   final Dio dio;
@@ -40,5 +41,14 @@ class ShopModelApi {
         .whereType<Map<String, dynamic>>()
         .map<OilItem>(OilItemModel.fromJson)
         .toList();
+  }
+
+  Future<ShopDetailsModel> getShopDetails({required int shopId}) async {
+    final response = await dio.get(
+      Endpoints.shopDetails.replaceAll('{shop_id}', shopId.toString()),
+    );
+
+    final data = response.data['data'] as Map<String, dynamic>? ?? const {};
+    return ShopDetailsModel.fromJson(data);
   }
 }
