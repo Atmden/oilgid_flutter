@@ -15,6 +15,7 @@ import 'package:oil_gid/pages/oil_shops_map_page.dart';
 import 'package:oil_gid/pages/profile_page.dart';
 import 'package:oil_gid/pages/shop_page.dart';
 import 'package:oil_gid/pages/shop_products_page.dart';
+import 'package:oil_gid/pages/shops_catalog_page.dart';
 import 'package:oil_gid/pages/privacy_policy.dart';
 import 'package:oil_gid/pages/term_of_use.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +24,6 @@ import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,14 +36,22 @@ Future<void> main() async {
 
   final accepted = await _checkPrivacyAccepted();
 
-  runApp(ProviderScope(child: MyApp(privacyAccepted: accepted, analytics: analytics)));
+  runApp(
+    ProviderScope(
+      child: MyApp(privacyAccepted: accepted, analytics: analytics),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   final bool privacyAccepted;
   final FirebaseAnalytics analytics;
 
-  const MyApp({super.key, required this.privacyAccepted, required this.analytics});
+  const MyApp({
+    super.key,
+    required this.privacyAccepted,
+    required this.analytics,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +91,7 @@ class MyApp extends StatelessWidget {
         },
         '/shop_products': (context) => const ShopProductsPage(),
         '/shop': (context) => const ShopPage(),
+        '/shops_catalog': (context) => const ShopsCatalogPage(),
         '/profile': (context) => const ProfilePage(),
       },
     );

@@ -1,4 +1,5 @@
 import '../../domain/entities/shop.dart';
+import '../../domain/entities/shop_catalog_result.dart';
 import '../../domain/entities/shop_details.dart';
 import '../../../oils/domain/entities/oil_item.dart';
 import '../../domain/repositories/shop_repository.dart';
@@ -16,7 +17,12 @@ class ShopRepositoryImpl implements ShopRepository {
     double? lng,
     int? radiusKm,
   }) {
-    return api.getShopsMarkers(oilId: oilId, lat: lat, lng: lng, radiusKm: radiusKm);
+    return api.getShopsMarkers(
+      oilId: oilId,
+      lat: lat,
+      lng: lng,
+      radiusKm: radiusKm,
+    );
   }
 
   @override
@@ -27,5 +33,24 @@ class ShopRepositoryImpl implements ShopRepository {
   @override
   Future<ShopDetails> getShopDetails({required int shopId}) {
     return api.getShopDetails(shopId: shopId);
+  }
+
+  @override
+  Future<ShopCatalogResult> getShopsCatalog({
+    required int page,
+    int perPage = 20,
+    String? search,
+    String? sort,
+    double? lat,
+    double? lng,
+  }) {
+    return api.getShopsCatalog(
+      page: page,
+      perPage: perPage,
+      search: search,
+      sort: sort,
+      lat: lat,
+      lng: lng,
+    );
   }
 }

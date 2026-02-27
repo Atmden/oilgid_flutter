@@ -27,12 +27,12 @@ class Endpoints {
   static const profile = '/user/profile';
 
   // oils
-  static const oilsByModification =
-      '/oils/by-modification/{modification_id}';
+  static const oilsByModification = '/oils/by-modification/{modification_id}';
   static const oilsCatalog = '/oils/catalog';
   static const oilsCatalogFacets = '/oils/catalog/facets';
   static const oilsCatalogFiltersBrands = '/oils/catalog/filters/brands';
-  static const oilsCatalogFiltersViscosities = '/oils/catalog/filters/viscosities';
+  static const oilsCatalogFiltersViscosities =
+      '/oils/catalog/filters/viscosities';
 
   // oil shops
   static const oilShop = '/oils/{oil_id}/shops';
@@ -46,4 +46,6 @@ class Endpoints {
   // shop details
   static const shopDetails = '/shops/{shop_id}';
 
+  // shops catalog
+  static const shopCatalog = '/shops/catalog';
 }

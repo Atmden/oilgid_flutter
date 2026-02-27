@@ -85,6 +85,11 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
                 onPressed: () => onItemPressed(context, index: '3'),
               ),
               Navigationitem(
+                title: 'Каталог магазинов',
+                icon: Icons.storefront,
+                onPressed: () => onItemPressed(context, index: 'shops_catalog'),
+              ),
+              Navigationitem(
                 title: 'Настройки',
                 icon: Icons.home,
                 onPressed: () => onItemPressed(context, index: '4'),
@@ -130,6 +135,9 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
       case '3':
         Navigator.pushNamed(context, '/profile');
         break;
+      case 'shops_catalog':
+        Navigator.pushNamed(context, '/shops_catalog');
+        break;
       case 'about':
         Navigator.push(
           context,
@@ -139,7 +147,11 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
     }
   }
 
-  Widget headerWidget(BuildContext context, bool isLoggedIn, {String? userName}) {
+  Widget headerWidget(
+    BuildContext context,
+    bool isLoggedIn, {
+    String? userName,
+  }) {
     if (isLoggedIn) {
       return headerUser(context, userName: userName ?? 'Пользователь');
     } else {
@@ -206,7 +218,8 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => const CircularProgressIndicator(),
+                  placeholder: (context, url) =>
+                      const CircularProgressIndicator(),
                   errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),
               ),
@@ -230,7 +243,11 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 18),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white70,
+              size: 18,
+            ),
           ],
         ),
       ),
