@@ -16,11 +16,6 @@ class ShopsCatalogCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Каталог магазинов',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -34,7 +29,7 @@ class ShopsCatalogCard extends StatelessWidget {
               },
               icon: const Icon(Icons.storefront, size: 20),
               label: const Text(
-                'Открыть каталог',
+                'Каталог магазинов',
                 style: TextStyle(fontSize: 16),
               ),
             ),

@@ -67,42 +67,23 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
               Navigationitem(
                 title: 'Главная',
                 icon: Icons.home_max,
-                onPressed: () => onItemPressed(context, index: '0'),
-              ),
-              Navigationitem(
-                title: 'Блог',
-                icon: Icons.home,
-                onPressed: () => onItemPressed(context, index: '1'),
-              ),
-              Navigationitem(
-                title: 'Личные заметки',
-                icon: Icons.home,
-                onPressed: () => onItemPressed(context, index: '2'),
+                onPressed: () => onItemPressed(context, index: 'home'),
               ),
               Navigationitem(
                 title: 'Профиль',
                 icon: Icons.home,
-                onPressed: () => onItemPressed(context, index: '3'),
+                onPressed: () => onItemPressed(context, index: 'profile'),
               ),
+              Navigationitem(
+                title: 'Каталог масел',
+                icon: Icons.oil_barrel,
+                onPressed: () => onItemPressed(context, index: 'oil_catalog'),
+              ),
+
               Navigationitem(
                 title: 'Каталог магазинов',
                 icon: Icons.storefront,
                 onPressed: () => onItemPressed(context, index: 'shops_catalog'),
-              ),
-              Navigationitem(
-                title: 'Настройки',
-                icon: Icons.home,
-                onPressed: () => onItemPressed(context, index: '4'),
-              ),
-              Navigationitem(
-                title: 'Еще что-то',
-                icon: Icons.home,
-                onPressed: () => onItemPressed(context, index: '5'),
-              ),
-              Navigationitem(
-                title: 'И еще',
-                icon: Icons.home,
-                onPressed: () => onItemPressed(context, index: '6'),
               ),
               Navigationitem(
                 title: AboutUsText,
@@ -116,27 +97,29 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
     );
   }
 
-  void onItemPressed(BuildContext context, {required String index}) {
+  Future<void> onItemPressed(
+    BuildContext context, {
+    required String index,
+  }) async {
     Navigator.pop(context);
 
     switch (index) {
-      case '0':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+      case 'home':
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         break;
-      case '1':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const Blog()),
-        );
-        break;
-      case '3':
-        Navigator.pushNamed(context, '/profile');
+      case 'profile':
+        final token = await TokenStorage().getUserToken();
+        if (token != null && token.trim().isNotEmpty) {
+          Navigator.pushNamed(context, '/profile');
+        } else {
+          Navigator.pushNamed(context, '/login');
+        }
         break;
       case 'shops_catalog':
         Navigator.pushNamed(context, '/shops_catalog');
+        break;
+      case 'oil_catalog':
+        Navigator.pushNamed(context, '/oil_catalog');
         break;
       case 'about':
         Navigator.push(

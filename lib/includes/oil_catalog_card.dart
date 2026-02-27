@@ -16,11 +16,6 @@ class OilCatalogCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Каталог масел',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -34,7 +29,7 @@ class OilCatalogCard extends StatelessWidget {
               },
               icon: const Icon(Icons.apps, size: 20),
               label: const Text(
-                'Открыть каталог',
+                'Каталог масел',
                 style: TextStyle(fontSize: 16),
               ),
             ),
