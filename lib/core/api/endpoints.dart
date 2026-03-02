@@ -1,5 +1,5 @@
 class Endpoints {
-  static const String baseUrl = 'https://oilgid.addy.kz/api';
+  static const String baseUrl = 'https://oilgid.kz/api';
 
   // app
   static const appConfig = '/app/config';
