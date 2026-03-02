@@ -2,6 +2,7 @@ class Shop {
   final int id;
   final String name;
   final String address;
+  final String? workingHours;
   final String? contacts;
   final String? phone;
   final String? email;
@@ -16,6 +17,7 @@ class Shop {
     required this.id,
     required this.name,
     required this.address,
+    this.workingHours,
     this.contacts,
     this.phone,
     this.email,
@@ -29,6 +31,6 @@ class Shop {
 
   @override
   String toString() {
-    return 'Shop(id: $id, name: $name, address: $address, contacts: $contacts, phone: $phone, email: $email, website: $website, price: $price, quantity: $quantity, lat: $lat, lng: $lng, distanceM: $distanceM)';
+    return 'Shop(id: $id, name: $name, address: $address, workingHours: $workingHours, contacts: $contacts, phone: $phone, email: $email, website: $website, price: $price, quantity: $quantity, lat: $lat, lng: $lng, distanceM: $distanceM)';
   }
 }

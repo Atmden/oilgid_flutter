@@ -94,11 +94,19 @@ class _ShopPageState extends State<ShopPage> {
               final details = snapshot.data;
               final name = _resolvedText(details?.name, shop.name);
               final address = _resolvedText(details?.address, shop.address);
+              final workingHours = _resolvedOptional(
+                details?.workingHours,
+                shop.workingHours,
+              );
               final phone = _resolvedOptional(details?.phone, shop.phone);
               final email = _resolvedOptional(details?.email, shop.email);
               final website = _resolvedOptional(details?.website, shop.website);
               final lat = details?.lat ?? shop.lat;
               final lng = details?.lng ?? shop.lng;
+              final canBuildRoute = NavigationLauncher.canBuildRoute(
+                lat: lat,
+                lng: lng,
+              );
               final gallery = details?.gallery ?? const <ShopGalleryImage>[];
 
               return ListView(
@@ -106,6 +114,7 @@ class _ShopPageState extends State<ShopPage> {
                   _InfoCard(
                     shopName: name,
                     address: address,
+                    workingHours: workingHours,
                     phone: phone,
                     email: email,
                     website: website,
@@ -126,23 +135,18 @@ class _ShopPageState extends State<ShopPage> {
                     ShopGallery(gallery: gallery),
                     const SizedBox(height: 12),
                   ],
-                  ElevatedButton(
-                    onPressed: NavigationLauncher.canBuildRoute(
-                          lat: lat,
-                          lng: lng,
-                          address: address,
-                        )
-                        ? () => NavigationLauncher.openRoute(
-                              context: context,
-                              shopName: name,
-                              lat: lat,
-                              lng: lng,
-                              address: address,
-                            )
-                        : null,
-                    child: const Text('Проложить маршрут'),
-                  ),
-                  const SizedBox(height: 8),
+                  if (canBuildRoute) ...[
+                    ElevatedButton(
+                      onPressed: () => NavigationLauncher.openRoute(
+                        context: context,
+                        shopName: name,
+                        lat: lat,
+                        lng: lng,
+                      ),
+                      child: const Text('Проложить маршрут'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   OutlinedButton(
                     onPressed: () {
                       Navigator.of(context).pushNamed(
@@ -181,6 +185,7 @@ class _ShopPageState extends State<ShopPage> {
 class _InfoCard extends StatelessWidget {
   final String shopName;
   final String address;
+  final String? workingHours;
   final String? phone;
   final String? email;
   final String? website;
@@ -191,6 +196,7 @@ class _InfoCard extends StatelessWidget {
   const _InfoCard({
     required this.shopName,
     required this.address,
+    required this.workingHours,
     required this.phone,
     required this.email,
     required this.website,
@@ -217,6 +223,7 @@ class _InfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _InfoRow(label: 'Адрес', value: address),
+          _InfoRow(label: 'Режим работы', value: workingHours),
           _InfoRow(label: 'Телефон', value: phone),
           _InfoRow(label: 'Email', value: email),
           _InfoRow(label: 'Сайт', value: website),
@@ -248,7 +255,7 @@ class _InfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 95,
+            width: 110,
             child: Text(
               '$label:',
               style: const TextStyle(fontWeight: FontWeight.w500),

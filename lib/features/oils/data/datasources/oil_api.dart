@@ -120,8 +120,6 @@ class OilApi {
     'isovg',
     'jaso',
     'din',
-    'parker_hannifin',
-    'part_number',
   ];
 
   OilApi(this.dio);

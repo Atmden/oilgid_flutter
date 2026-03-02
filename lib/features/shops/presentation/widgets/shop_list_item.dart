@@ -31,6 +31,8 @@ class ShopListItem extends StatelessWidget {
             if (shop.address.isNotEmpty) Text(shop.address),
             if (shop.phone != null && shop.phone!.isNotEmpty)
               Text('Тел: ${shop.phone}'),
+            if (shop.workingHours != null && shop.workingHours!.trim().isNotEmpty)
+              Text('Режим работы: ${shop.workingHours}'),
             if (distanceKm != null) Text('~$distanceKm км'),
           ],
         ),

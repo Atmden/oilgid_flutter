@@ -208,6 +208,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       final details = snapshot.data;
                       final shopName = _resolvedText(details?.name, shop.name);
                       final address = _resolvedText(details?.address, shop.address);
+                      final workingHours = _resolvedOptional(
+                        details?.workingHours,
+                        shop.workingHours,
+                      );
                       final phone = _resolvedOptional(details?.phone, shop.phone);
                       final email = _resolvedOptional(details?.email, shop.email);
                       final website = _resolvedOptional(
@@ -216,6 +220,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       );
                       final routeLat = details?.lat ?? shop.lat;
                       final routeLng = details?.lng ?? shop.lng;
+                      final canBuildRoute = NavigationLauncher.canBuildRoute(
+                        lat: routeLat,
+                        lng: routeLng,
+                      );
                       final gallery = details?.gallery ?? const <ShopGalleryImage>[];
 
                       return Container(
@@ -288,6 +296,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             const SizedBox(height: 8),
 
                             _infoRow('Адрес', address, 'address'),
+                            _infoRow(
+                              'Режим работы',
+                              workingHours,
+                              'working_hours',
+                            ),
                             _infoRow('Телефон', phone, 'phone'),
                             _infoRow('Email', email, 'email'),
                             _infoRow('Сайт', website, 'website'),
@@ -394,23 +407,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             ),
 
                             const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: NavigationLauncher.canBuildRoute(
-                                    lat: routeLat,
-                                    lng: routeLng,
-                                    address: address,
-                                  )
-                                  ? () => NavigationLauncher.openRoute(
-                                        context: this.context,
-                                        shopName: shopName,
-                                        lat: routeLat,
-                                        lng: routeLng,
-                                        address: address,
-                                      )
-                                  : null,
-                              child: const Text('Проложить маршрут'),
-                            ),
-                            const SizedBox(height: 8),
+                            if (canBuildRoute) ...[
+                              ElevatedButton(
+                                onPressed: () => NavigationLauncher.openRoute(
+                                  context: this.context,
+                                  shopName: shopName,
+                                  lat: routeLat,
+                                  lng: routeLng,
+                                ),
+                                child: const Text('Проложить маршрут'),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
                             OutlinedButton(
                               onPressed: () {
                                 Navigator.of(context).pop();

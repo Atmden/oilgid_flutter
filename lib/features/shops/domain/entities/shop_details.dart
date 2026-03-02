@@ -12,6 +12,7 @@ class ShopDetails {
   final int id;
   final String name;
   final String address;
+  final String? workingHours;
   final String? contacts;
   final String? phone;
   final String? email;
@@ -24,6 +25,7 @@ class ShopDetails {
     required this.id,
     required this.name,
     required this.address,
+    this.workingHours,
     this.contacts,
     this.phone,
     this.email,
