@@ -8,6 +8,7 @@ import 'package:oil_gid/features/shops/presentation/widgets/shop_gallery.dart';
 import 'package:oil_gid/features/shops/presentation/shop_products_route_args.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:oil_gid/themes/app_colors.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -19,6 +20,7 @@ class ShopPage extends StatefulWidget {
 class _ShopPageState extends State<ShopPage> {
   final _shopRepository = ShopRepositoryImpl(AppApi().shopModelApi);
   Shop? _shop;
+  int? _shopId;
   bool _initialized = false;
   Future<ShopDetails>? _detailsFuture;
 
@@ -29,40 +31,51 @@ class _ShopPageState extends State<ShopPage> {
     _initialized = true;
 
     final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is ShopPageArgs) {
+    if (args is ShopPageInput) {
       _shop = args.shop;
-      _detailsFuture = _shopRepository.getShopDetails(shopId: args.shop.id);
+      _shopId = args.resolvedShopId;
+    } else if (args is ShopPageArgs) {
+      _shop = args.shop;
+      _shopId = args.shop.id;
+    } else if (args is int) {
+      _shopId = args;
+    }
+    final id = _shopId;
+    if (id != null) {
+      _detailsFuture = _shopRepository.getShopDetails(shopId: id);
     }
   }
 
   void _retryLoadDetails() {
-    final shop = _shop;
-    if (shop == null) return;
+    final shopId = _shopId;
+    if (shopId == null) return;
     setState(() {
-      _detailsFuture = _shopRepository.getShopDetails(shopId: shop.id);
+      _detailsFuture = _shopRepository.getShopDetails(shopId: shopId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final shop = _shop;
-    if (shop == null) {
+    final shopId = _shopId;
+    final detailsFuture = _detailsFuture;
+
+    if (shopId == null || detailsFuture == null) {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           title: const Text('Магазин'),
         ),
-        body: const Center(child: Text('Нет данных о магазине')),
+        body: const Center(child: Text('Некорректная ссылка на магазин')),
       );
     }
 
-    final detailsFuture = _detailsFuture;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        title: Text(shop.name),
+        title: Text(shop?.name ?? 'Магазин'),
       ),
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -92,35 +105,41 @@ class _ShopPageState extends State<ShopPage> {
               }
 
               final details = snapshot.data;
-              final name = _resolvedText(details?.name, shop.name);
-              final address = _resolvedText(details?.address, shop.address);
+              if (details == null) {
+                return const Center(child: Text('Магазин не найден'));
+              }
+
+              final name = details.name;
+              final address = details.address;
               final workingHours = _resolvedOptional(
-                details?.workingHours,
-                shop.workingHours,
+                details.workingHours,
+                shop?.workingHours,
               );
-              final phone = _resolvedOptional(details?.phone, shop.phone);
-              final email = _resolvedOptional(details?.email, shop.email);
-              final website = _resolvedOptional(details?.website, shop.website);
-              final lat = details?.lat ?? shop.lat;
-              final lng = details?.lng ?? shop.lng;
+              final phone = _resolvedOptional(details.phone, shop?.phone);
+              final email = _resolvedOptional(details.email, shop?.email);
+              final website = _resolvedOptional(details.website, shop?.website);
+              final lat = details.lat ?? shop?.lat;
+              final lng = details.lng ?? shop?.lng;
               final canBuildRoute = NavigationLauncher.canBuildRoute(
                 lat: lat,
                 lng: lng,
               );
-              final gallery = details?.gallery ?? const <ShopGalleryImage>[];
+              final gallery = details.gallery;
+              final shareShopId = shopId.toString();
 
               return ListView(
                 children: [
                   _InfoCard(
+                    shopId: shareShopId,
                     shopName: name,
                     address: address,
                     workingHours: workingHours,
                     phone: phone,
                     email: email,
                     website: website,
-                    price: shop.price,
-                    quantity: shop.quantity,
-                    distanceM: shop.distanceM,
+                    price: shop?.price,
+                    quantity: shop?.quantity,
+                    distanceM: shop?.distanceM,
                   ),
                   const SizedBox(height: 12),
                   if (gallery.isNotEmpty) ...[
@@ -152,7 +171,7 @@ class _ShopPageState extends State<ShopPage> {
                       Navigator.of(context).pushNamed(
                         '/shop_products',
                         arguments: ShopProductsArgs(
-                          shopId: shop.id,
+                          shopId: details.id,
                           shopName: name,
                         ),
                       );
@@ -168,12 +187,6 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  String _resolvedText(String? primary, String fallback) {
-    final normalizedPrimary = primary?.trim() ?? '';
-    if (normalizedPrimary.isNotEmpty) return normalizedPrimary;
-    return fallback;
-  }
-
   String? _resolvedOptional(String? primary, String? fallback) {
     final normalizedPrimary = primary?.trim() ?? '';
     if (normalizedPrimary.isNotEmpty) return normalizedPrimary;
@@ -183,6 +196,7 @@ class _ShopPageState extends State<ShopPage> {
 }
 
 class _InfoCard extends StatelessWidget {
+  final String shopId;
   final String shopName;
   final String address;
   final String? workingHours;
@@ -194,6 +208,7 @@ class _InfoCard extends StatelessWidget {
   final int? distanceM;
 
   const _InfoCard({
+    required this.shopId,
     required this.shopName,
     required this.address,
     required this.workingHours,
@@ -217,19 +232,42 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            shopName,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                shopName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  SharePlus.instance.share(
+                    ShareParams(
+                      text:
+                          'Делюсь ссылкой на магазин: https://oilgid.kz/app/shop/$shopId',
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.share),
+              ),
+            ],
           ),
+
           const SizedBox(height: 8),
           _InfoRow(label: 'Адрес', value: address),
           _InfoRow(label: 'Режим работы', value: workingHours),
           _InfoRow(label: 'Телефон', value: phone),
           _InfoRow(label: 'Email', value: email),
           _InfoRow(label: 'Сайт', value: website),
-          if (price != null) _InfoRow(label: 'Цена', value: price!.toStringAsFixed(2)),
-          if (quantity != null) _InfoRow(label: 'Наличие', value: quantity.toString()),
-          if (distanceM != null) _InfoRow(label: 'Расстояние', value: '$distanceM м'),
+          if (price != null)
+            _InfoRow(label: 'Цена', value: price!.toStringAsFixed(2)),
+          if (quantity != null)
+            _InfoRow(label: 'Наличие', value: quantity.toString()),
+          if (distanceM != null)
+            _InfoRow(label: 'Расстояние', value: '$distanceM м'),
         ],
       ),
     );

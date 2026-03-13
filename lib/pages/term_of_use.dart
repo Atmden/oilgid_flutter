@@ -7,9 +7,10 @@ import 'package:oil_gid/pages/home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TermOfUse extends StatefulWidget {
-  const TermOfUse({super.key, this.showAcceptButton = true});
+  const TermOfUse({super.key, this.showAcceptButton = true, this.onAccepted});
 
   final bool showAcceptButton;
+  final VoidCallback? onAccepted;
 
   @override
   State<TermOfUse> createState() => _TermOfUseState();
@@ -23,6 +24,10 @@ class _TermOfUseState extends State<TermOfUse> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('privacy_accepted', true);
 
+    if (widget.onAccepted != null) {
+      widget.onAccepted!();
+      return;
+    }
     // Перейти в основной экран
     Navigator.of(
       context,

@@ -386,7 +386,7 @@ class _ShopsCatalogPageState extends State<ShopsCatalogPage> {
               Navigator.pushNamed(
                 context,
                 '/shop',
-                arguments: ShopPageArgs(shop: shop),
+                arguments: ShopPageInput.fromShop(shop),
               );
             },
           );

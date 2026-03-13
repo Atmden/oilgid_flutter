@@ -13,3 +13,20 @@ class ShopPageArgs {
 
   ShopPageArgs({required this.shop});
 }
+
+class ShopPageInput {
+  final Shop? shop;
+  final int? shopId;
+
+  const ShopPageInput._({this.shop, this.shopId});
+
+  factory ShopPageInput.fromShop(Shop shop) {
+    return ShopPageInput._(shop: shop, shopId: shop.id);
+  }
+
+  factory ShopPageInput.fromId(int shopId) {
+    return ShopPageInput._(shopId: shopId);
+  }
+
+  int? get resolvedShopId => shopId ?? shop?.id;
+}

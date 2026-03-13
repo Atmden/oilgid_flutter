@@ -424,7 +424,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                 Navigator.of(context).pop();
                                 Navigator.of(this.context).pushNamed(
                                   '/shop',
-                                  arguments: ShopPageArgs(shop: shop),
+                                  arguments: ShopPageInput.fromShop(shop),
                                 );
                               },
                               child: const Text('Открыть магазин'),

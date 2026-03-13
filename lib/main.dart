@@ -26,6 +26,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:upgrader/upgrader.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'dart:async';
+import 'package:oil_gid/core/deeplink/deep_link_controller.dart';
+import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +48,7 @@ Future<void> main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool privacyAccepted;
   final FirebaseAnalytics analytics;
 
@@ -56,15 +59,74 @@ class MyApp extends StatelessWidget {
   });
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  late final DeepLinkController _deepLinkController;
+  late bool _privacyAccepted;
+  Uri? _pendingUri;
+
+  @override
+  void initState() {
+    super.initState();
+    _privacyAccepted = widget.privacyAccepted;
+    _deepLinkController = DeepLinkController(onUri: _onIncomingUri);
+    unawaited(_deepLinkController.start());
+  }
+
+  @override
+  void dispose() {
+    unawaited(_deepLinkController.dispose());
+    super.dispose();
+  }
+
+  void _onIncomingUri(Uri uri) {
+    if (!_privacyAccepted) {
+      _pendingUri = uri;
+      return;
+    }
+    _openDeepLink(uri);
+  }
+
+  void _openDeepLink(Uri uri) {
+    final action = DeepLinkParser.parse(uri);
+    if (action is OpenShopDeepLink) {
+      _navigatorKey.currentState?.pushNamed(
+        '/shop',
+        arguments: ShopPageInput.fromId(action.shopId),
+      );
+    }
+  }
+
+  void _onPrivacyAccepted() {
+    final pending = _pendingUri;
+    _pendingUri = null;
+    setState(() {
+      _privacyAccepted = true;
+    });
+    final nav = _navigatorKey.currentState;
+    if (nav == null) return;
+    // Убираем TermOfUse из стека
+    nav.pushNamedAndRemoveUntil('/home', (route) => false);
+    // Если ссылка была отложена — открываем после перехода на home
+    if (pending != null) {
+      Future.microtask(() => _openDeepLink(pending));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
-      navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
+      navigatorObservers: [
+        FirebaseAnalyticsObserver(analytics: widget.analytics),
+      ],
       builder: (context, child) {
         return UpgradeAlert(
-          upgrader: Upgrader(
-            durationUntilAlertAgain: const Duration(days: 1),
-          ),
+          upgrader: Upgrader(durationUntilAlertAgain: const Duration(days: 1)),
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -73,7 +135,9 @@ class MyApp extends StatelessWidget {
           seedColor: const Color.fromARGB(255, 4, 16, 20),
         ),
       ),
-      home: privacyAccepted ? const HomePage() : const TermOfUse(),
+      home: _privacyAccepted
+          ? const HomePage()
+          : TermOfUse(onAccepted: _onPrivacyAccepted),
       routes: {
         '/home': (context) => HomePage(),
         '/privacy_policy': (context) => PrivacyPolicy(),
