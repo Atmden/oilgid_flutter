@@ -1,7 +1,7 @@
 name: oil_gid
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.1+4
 
 environment:
   sdk: ^3.10.3
@@ -25,7 +25,9 @@ dependencies:
   geolocator: ^14.0.2
   hive_flutter: ^1.1.0
   markdown_widget: ^2.3.2+8
+  package_info_plus: ^9.0.0
   shared_preferences: ^2.5.4
+  upgrader: ^12.5.0
   url_launcher: ^6.3.2
   uuid: ^4.5.2
   yandex_mapkit: ^4.2.1

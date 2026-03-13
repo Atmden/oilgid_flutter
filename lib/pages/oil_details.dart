@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/shops/domain/entities/shop.dart';
+import 'package:oil_gid/features/shops/presentation/online_shop_details_route_args.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
-import 'package:oil_gid/features/oils/domain/entities/oil_approval.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:oil_gid/themes/app_colors.dart';
@@ -23,10 +23,8 @@ class OilDetailsPage extends StatefulWidget {
 class _OilDetailsPageState extends State<OilDetailsPage> {
   bool _initialized = false;
   OilItem? _item;
-  int _currentIndex = 0;
   String _volume = '';
   String _description = '';
-  Position? _userLocation;
   Future<List<Shop>>? _shopsFuture;
   final _shopRepository = ShopRepositoryImpl(AppApi().shopModelApi);
 
@@ -47,7 +45,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
       if (!mounted) return;
       if (_item == null) return;
       setState(() {
-        _userLocation = value;
         _shopsFuture = _shopRepository.getShopsMarkers(
           oilId: _item!.id,
           lat: value?.latitude,
@@ -170,7 +167,22 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                         final shops = snapshot.data ?? [];
                         return SizedBox(
                           height: 300,
-                          child: Scrollbar(child: ShopList(shops: shops)),
+                          child: Scrollbar(
+                            child: ShopList(
+                              shops: shops,
+                              onSelect: (shop) {
+                                Navigator.of(context).pushNamed(
+                                  '/online_shop_details',
+                                  arguments: OnlineShopDetailsArgs(
+                                    shop: shop,
+                                    oilItem: item,
+                                    volume: _volume,
+                                    description: _description,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         );
                       },
                     ),

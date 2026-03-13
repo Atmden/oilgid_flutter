@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
 import 'package:oil_gid/lang/ru.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class About extends StatefulWidget {
@@ -13,6 +14,28 @@ class About extends StatefulWidget {
 }
 
 class _AboutState extends State<About> {
+  String _appVersion = '—';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    final version = packageInfo.version.trim();
+    final buildNumber = packageInfo.buildNumber.trim();
+    final formatted = buildNumber.isEmpty
+        ? version
+        : '$version ($buildNumber)';
+
+    if (!mounted) return;
+    setState(() {
+      _appVersion = formatted.isEmpty ? '—' : formatted;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,6 +127,11 @@ class _AboutState extends State<About> {
                 ],
               ),
               const SizedBox(height: 16),
+              Text(
+                'Версия: $_appVersion',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
 
               // Footer
               const Text(

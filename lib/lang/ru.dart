@@ -13,6 +13,6 @@ const LastUpdatedText = 'Последнее обновление';
 
 const AcceptText = 'Принять';
 
-const aboutText = 'OIL GID\nВерсия 0.1.0';
+const aboutText = 'OIL GID';
 const contactEmail = '';
 const instagramUrl = '';

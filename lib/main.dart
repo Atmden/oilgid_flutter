@@ -12,6 +12,7 @@ import 'package:oil_gid/pages/oil_details.dart';
 import 'package:oil_gid/pages/oil_catalog_page.dart';
 import 'package:oil_gid/pages/oil_list.dart';
 import 'package:oil_gid/pages/oil_shops_map_page.dart';
+import 'package:oil_gid/pages/online_shop_details_page.dart';
 import 'package:oil_gid/pages/profile_page.dart';
 import 'package:oil_gid/pages/shop_page.dart';
 import 'package:oil_gid/pages/shop_products_page.dart';
@@ -22,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:upgrader/upgrader.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 
@@ -56,7 +58,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
+      builder: (context, child) {
+        return UpgradeAlert(
+          upgrader: Upgrader(
+            durationUntilAlertAgain: const Duration(days: 1),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color.fromARGB(255, 4, 16, 20),
@@ -91,6 +102,7 @@ class MyApp extends StatelessWidget {
         },
         '/shop_products': (context) => const ShopProductsPage(),
         '/shop': (context) => const ShopPage(),
+        '/online_shop_details': (context) => const OnlineShopDetailsPage(),
         '/shops_catalog': (context) => const ShopsCatalogPage(),
         '/profile': (context) => const ProfilePage(),
       },
