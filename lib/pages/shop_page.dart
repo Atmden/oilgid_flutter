@@ -76,6 +76,19 @@ class _ShopPageState extends State<ShopPage> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: Text(shop?.name ?? 'Магазин'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              SharePlus.instance.share(
+                ShareParams(
+                  text:
+                      'Делюсь ссылкой на магазин: https://oilgid.kz/app/shop/$shopId',
+                ),
+              );
+            },
+            icon: const Icon(Icons.share),
+          ),
+        ],
       ),
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -232,30 +245,10 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                shopName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  SharePlus.instance.share(
-                    ShareParams(
-                      text:
-                          'Делюсь ссылкой на магазин: https://oilgid.kz/app/shop/$shopId',
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.share),
-              ),
-            ],
+          Text(
+            shopName,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-
           const SizedBox(height: 8),
           _InfoRow(label: 'Адрес', value: address),
           _InfoRow(label: 'Режим работы', value: workingHours),

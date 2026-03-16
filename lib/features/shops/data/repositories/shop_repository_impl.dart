@@ -4,6 +4,7 @@ import '../../domain/entities/shop_details.dart';
 import '../../../oils/domain/entities/oil_item.dart';
 import '../../domain/repositories/shop_repository.dart';
 import '../datasource/shop_model_api.dart';
+import 'package:cached_query/cached_query.dart';
 
 class ShopRepositoryImpl implements ShopRepository {
   final ShopModelApi api;
@@ -31,8 +32,10 @@ class ShopRepositoryImpl implements ShopRepository {
   }
 
   @override
-  Future<ShopDetails> getShopDetails({required int shopId}) {
-    return api.getShopDetails(shopId: shopId);
+  Future<ShopDetails> getShopDetails({required int shopId}) async {
+    final query = Query(key: "shop_details_$shopId", queryFn: () => api.getShopDetails(shopId: shopId));
+    final queryState = await query.fetch();
+    return queryState.data!;
   }
 
   @override

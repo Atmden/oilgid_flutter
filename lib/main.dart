@@ -29,9 +29,16 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'dart:async';
 import 'package:oil_gid/core/deeplink/deep_link_controller.dart';
 import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
-
+import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
+import 'package:cached_query/cached_query.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  CachedQuery.instance.config(
+    config: GlobalQueryConfig(
+      staleDuration: Duration(minutes: 10),
+      cacheDuration: Duration(minutes: 10),
+    ),
+  );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   await AppApi().initApp();
@@ -98,6 +105,13 @@ class _MyAppState extends State<MyApp> {
         arguments: ShopPageInput.fromId(action.shopId),
       );
     }
+
+    if (action is OpenOilDeepLink) {
+      _navigatorKey.currentState?.pushNamed(
+        '/oil_details',
+        arguments: OilDetailsInput.fromId(action.oilId),
+      );
+    }
   }
 
   void _onPrivacyAccepted() {
@@ -118,6 +132,8 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    
+
     return MaterialApp(
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,

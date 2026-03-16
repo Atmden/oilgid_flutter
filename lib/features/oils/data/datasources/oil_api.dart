@@ -126,6 +126,14 @@ class OilApi {
 
   OilApi(this.dio);
 
+  Future<OilItem> getOilById({required int oilId}) async {
+    final response = await dio.get(
+      Endpoints.oilDetails.replaceAll('{oil_id}', oilId.toString()),
+    );
+    final data = response.data['data'] as Map<String, dynamic>? ?? const {};
+    return OilItemModel.fromJson(data);
+  }
+
   Future<OilCatalogResult> getOilsCatalog({
     required int page,
     Map<String, List<int>>? selectedFacetIds,

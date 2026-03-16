@@ -327,11 +327,7 @@ class _OilCatalogPageState extends ConsumerState<OilCatalogPage> {
             Navigator.pushNamed(
               context,
               '/oil_details',
-              arguments: OilDetailsArgs(
-                item: item,
-                volume: '',
-                description: '',
-              ),
+              arguments: OilDetailsInput.fromItem(item),
             );
           },
         );

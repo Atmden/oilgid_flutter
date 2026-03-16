@@ -12,6 +12,12 @@ class OpenShopDeepLink extends DeepLinkAction {
   const OpenShopDeepLink(this.shopId);
 }
 
+class OpenOilDeepLink extends DeepLinkAction {
+  final int oilId;
+
+  const OpenOilDeepLink(this.oilId);
+}
+
 class DeepLinkParser {
   static const _allowedHosts = {'oilgid.kz', 'www.oilgid.kz'};
 
@@ -28,6 +34,12 @@ class DeepLinkParser {
       final shopId = int.tryParse(segments[2]);
       if (shopId == null) return const IgnoreDeepLink();
       return OpenShopDeepLink(shopId);
+    }
+
+    if (segments[1] == 'oil') {
+      final oilId = int.tryParse(segments[2]);
+      if (oilId == null) return const IgnoreDeepLink();
+      return OpenOilDeepLink(oilId);
     }
 
     return const IgnoreDeepLink();

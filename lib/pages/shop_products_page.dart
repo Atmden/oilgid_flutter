@@ -130,7 +130,7 @@ class _ProductTile extends StatelessWidget {
           Navigator.pushNamed(
             context,
             '/oil_details',
-            arguments: OilDetailsArgs(item: item, volume: '', description: ''),
+            arguments: OilDetailsInput.fromItem(item),
           );
         },
         leading: previewUrl.isNotEmpty

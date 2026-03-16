@@ -34,6 +34,9 @@ class Endpoints {
   static const oilsCatalogFiltersViscosities =
       '/oils/catalog/filters/viscosities';
 
+  // oil details
+  static const oilDetails = '/oils/{oil_id}';
+
   // oil shops
   static const oilShop = '/oils/{oil_id}/shops';
 

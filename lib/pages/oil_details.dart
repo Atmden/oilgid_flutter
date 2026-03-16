@@ -12,6 +12,8 @@ import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.da
 import 'package:oil_gid/features/shops/presentation/widgets/shop_list.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_gallery.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_approvals_group.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:oil_gid/features/oils/data/repositories/oil_repository_impl.dart';
 
 class OilDetailsPage extends StatefulWidget {
   const OilDetailsPage({super.key});
@@ -23,10 +25,13 @@ class OilDetailsPage extends StatefulWidget {
 class _OilDetailsPageState extends State<OilDetailsPage> {
   bool _initialized = false;
   OilItem? _item;
+  int? _oilId;
   String _volume = '';
   String _description = '';
   Future<List<Shop>>? _shopsFuture;
+  Future<OilItem>? _detailsFuture;
   final _shopRepository = ShopRepositoryImpl(AppApi().shopModelApi);
+  final _oilRepository = OilRepositoryImpl(AppApi().oilApi);
 
   @override
   void didChangeDependencies() {
@@ -35,23 +40,64 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
     _initialized = true;
 
     final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is OilDetailsArgs) {
+    if (args is OilDetailsInput) {
       _item = args.item;
+      _oilId = args.oilId;
+      _volume = args.volume ?? '';
+      _description = args.description ?? '';
+    } else if (args is OilDetailsArgs) {
+      _item = args.item;
+      _oilId = args.item.id;
       _volume = args.volume;
       _description = args.description;
+    } else if (args is int) {
+      _oilId = args;
     }
 
-    _loadUserLocation().then((value) {
+    final item = _item;
+    if (item != null) {
+      _loadShopsForItem(item);
+      return;
+    }
+
+    final id = _oilId;
+    if (id != null) {
+      _startLoadDetails(id);
+    }
+  }
+
+  void _startLoadDetails(int oilId) {
+    final future = _oilRepository.getOilById(oilId: oilId);
+    _detailsFuture = future;
+    future.then((item) {
       if (!mounted) return;
-      if (_item == null) return;
       setState(() {
-        _shopsFuture = _shopRepository.getShopsMarkers(
-          oilId: _item!.id,
-          lat: value?.latitude,
-          lng: value?.longitude,
-          radiusKm: 150,
-        );
+        _item = item;
       });
+      _loadShopsForItem(item);
+    });
+  }
+
+  void _retryLoadDetails() {
+    final id = _oilId;
+    if (id == null) return;
+    setState(() {
+      _item = null;
+      _shopsFuture = null;
+    });
+    _startLoadDetails(id);
+  }
+
+  Future<void> _loadShopsForItem(OilItem item) async {
+    final value = await _loadUserLocation();
+    if (!mounted) return;
+    setState(() {
+      _shopsFuture = _shopRepository.getShopsMarkers(
+        oilId: item.id,
+        lat: value?.latitude,
+        lng: value?.longitude,
+        radiusKm: 150,
+      );
     });
   }
 
@@ -77,23 +123,98 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   Widget build(BuildContext context) {
     final item = _item;
     if (item == null) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          title: const Text('Масло'),
-        ),
-        backgroundColor: AppColors.background,
-        body: const Center(child: Text('Нет данных для отображения')),
+      final oilId = _oilId;
+      final detailsFuture = _detailsFuture;
+      if (oilId == null || detailsFuture == null) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            title: const Text('Масло'),
+          ),
+          backgroundColor: AppColors.background,
+          body: const Center(child: Text('Некорректная ссылка на масло')),
+        );
+      }
+
+      return FutureBuilder<OilItem>(
+        future: detailsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
+            return Scaffold(
+              appBar: AppBar(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                title: const Text('Масло'),
+              ),
+              backgroundColor: AppColors.background,
+              body: const Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasError && !snapshot.hasData) {
+            return Scaffold(
+              appBar: AppBar(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                title: const Text('Масло'),
+              ),
+              backgroundColor: AppColors.background,
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Не удалось загрузить информацию о масле'),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: _retryLoadDetails,
+                      child: const Text('Повторить'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          final resolvedItem = snapshot.data;
+          if (resolvedItem == null) {
+            return Scaffold(
+              appBar: AppBar(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                title: const Text('Масло'),
+              ),
+              backgroundColor: AppColors.background,
+              body: const Center(child: Text('Масло не найдено')),
+            );
+          }
+          return _buildContent(resolvedItem);
+        },
       );
     }
 
+    return _buildContent(item);
+  }
+
+  Widget _buildContent(OilItem item) {
     final images = item.resolveImages();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: Text(item.title),
+        actions: [
+          IconButton(
+            onPressed: () {
+              SharePlus.instance.share(
+                ShareParams(
+                  text:
+                      'Делюсь ссылкой на масло: https://oilgid.kz/app/oil/${item.id}',
+                ),
+              );
+            },
+            icon: const Icon(Icons.share),
+          ),
+        ],
       ),
       backgroundColor: AppColors.background,
       body: SafeArea(

@@ -171,8 +171,8 @@ class _OilListPageState extends ConsumerState<OilListPage> {
               Navigator.pushNamed(
                 context,
                 '/oil_details',
-                arguments: OilDetailsArgs(
-                  item: item,
+                arguments: OilDetailsInput.fromItem(
+                  item,
                   volume: _oilTypeVolume,
                   description: _oilTypeDescription,
                 ),
