@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:oil_gid/themes/default.dart';
 
 class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const MainAppBar({super.key, required this.title});
+  const MainAppBar({super.key, required this.title, this.actions});
 
   final String title;
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +14,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Text(title, style: appTitleStyle),
       backgroundColor: appBgColor,
       iconTheme: IconThemeData(color: mainMenuIconColor),
+      actions: actions,
     );
   }
 

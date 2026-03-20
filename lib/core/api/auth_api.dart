@@ -4,6 +4,15 @@ import 'endpoints.dart';
 class AuthApi {
   final _dio = DioClient().dio;
 
+  Future<void> deleteAccount() async {
+    final response = await _dio.delete(Endpoints.deleteAccount);
+    if (!_isSuccessResponse(response.data)) {
+      throw Exception(
+        _extractMessage(response.data, 'Не удалось удалить аккаунт.'),
+      );
+    }
+  }
+
   Future<bool> checkUserByPhone(String phone) async {
     final response = await _dio.post(
       Endpoints.authCheckUserByPhone,

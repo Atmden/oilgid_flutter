@@ -22,6 +22,7 @@ class Endpoints {
   static const verifySendCode = '/verify/sendCode';
   static const verifyCode = '/verify/verifyCode';
   static const register = '/auth/register';
+  static const deleteAccount = '/auth/account';
 
   // user
   static const profile = '/user/profile';

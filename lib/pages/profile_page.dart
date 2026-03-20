@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:oil_gid/core/api/user_api.dart';
+import 'package:oil_gid/core/api/auth_api.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
@@ -14,6 +16,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final _userApi = UserApi();
+  final _authApi = AuthApi();
   final _tokenStorage = TokenStorage();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -21,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool _isLoading = true;
   bool _isLoggingOut = false;
+  bool _isDeletingAccount = false;
   bool _isEditing = false;
   bool _isSavingProfile = false;
   String? _errorMessage;
@@ -231,6 +235,103 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _requestLogout() async {
+    if (_isLoggingOut) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Выйти из аккаунта'),
+        content: const Text('Вы действительно хотите выйти?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Выйти'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await _logout();
+  }
+
+  Future<void> _requestDeleteAccount() async {
+    if (_isDeletingAccount) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Удалить аккаунт'),
+        content: const Text(
+          'Аккаунт и ваши данные будут удалены без возможности восстановления',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await _deleteAccount();
+  }
+
+  Future<void> _deleteAccount() async {
+    setState(() {
+      _isDeletingAccount = true;
+      _errorMessage = null;
+    });
+
+    var didNavigate = false;
+    try {
+      await _authApi.deleteAccount();
+
+      // Удаляем локальные данные, которые относятся к авторизованному пользователю.
+      await _tokenStorage.clearPhoneRegistrationData();
+      try {
+        final box = Hive.box('user_cars');
+        await box.clear();
+      } catch (_) {
+        // Если box не открыт (или не существует) - игнорируем, т.к. очистка не критична.
+      }
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      didNavigate = true;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (!mounted || didNavigate) return;
+      setState(() {
+        _isDeletingAccount = false;
+      });
+    }
+  }
+
   String _formatValue(dynamic value) {
     final text = value?.toString().trim() ?? '';
     return text.isEmpty ? '—' : text;
@@ -295,155 +396,159 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     const avatarUrl = 'https://picsum.photos/200';
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (!_isEditing && (_errorMessage ?? '').isNotEmpty) ...[
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 12),
-          ],
-          const SizedBox(height: 8),
-          Center(
-            child: CircleAvatar(
-              radius: 48,
-              child: ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl: avatarUrl,
-                  width: 96,
-                  height: 96,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      const CircularProgressIndicator(strokeWidth: 2),
-                  errorWidget: (context, url, error) =>
-                      const Icon(Icons.error),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            _formatValue(_profile!['name']),
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _formatValue(_profile!['phone']),
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15, color: Colors.black54),
-          ),
-          const SizedBox(height: 24),
-          if (!_isEditing) ...[
-            _buildInfoRow(label: 'Email', value: _profile!['email']),
-            _buildInfoRow(
-              label: 'Дата рождения',
-              value: _formatBirthDate(_profile!['birth_date']),
-            ),
-            _buildInfoRow(
-              label: 'Дата регистрации',
-              value: _profile!['created_at'],
-            ),
-          ] else ...[
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Имя',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _birthDateController,
-              readOnly: true,
-              onTap: _pickBirthDate,
-              decoration: InputDecoration(
-                labelText: 'Дата рождения',
-                hintText: 'D.M.YYYY',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  onPressed: _pickBirthDate,
-                  icon: const Icon(Icons.calendar_today_outlined),
-                ),
-              ),
-            ),
-            if ((_errorMessage ?? '').isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Row(
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isSavingProfile ? null : _cancelEditing,
-                    child: const Text('Отмена'),
+                if (!_isEditing && (_errorMessage ?? '').isNotEmpty) ...[
+                  Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 8),
+                Center(
+                  child: CircleAvatar(
+                    radius: 48,
+                    child: ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        width: 96,
+                        height: 96,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            const CircularProgressIndicator(strokeWidth: 2),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.error),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSavingProfile ? null : _saveProfile,
-                    child: _isSavingProfile
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Сохранить'),
-                  ),
+                const SizedBox(height: 14),
+                Text(
+                  _formatValue(_profile!['name']),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  _formatValue(_profile!['phone']),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, color: Colors.black54),
+                ),
+                const SizedBox(height: 24),
+                if (!_isEditing) ...[
+                  _buildInfoRow(label: 'Email', value: _profile!['email']),
+                  _buildInfoRow(
+                    label: 'Дата рождения',
+                    value: _formatBirthDate(_profile!['birth_date']),
+                  ),
+                  _buildInfoRow(
+                    label: 'Дата регистрации',
+                    value: _profile!['created_at'],
+                  ),
+                ] else ...[
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Имя',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _birthDateController,
+                    readOnly: true,
+                    onTap: _pickBirthDate,
+                    decoration: InputDecoration(
+                      labelText: 'Дата рождения',
+                      hintText: 'D.M.YYYY',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        onPressed: _pickBirthDate,
+                        icon: const Icon(Icons.calendar_today_outlined),
+                      ),
+                    ),
+                  ),
+                  if ((_errorMessage ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isSavingProfile ? null : _cancelEditing,
+                          child: const Text('Отмена'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isSavingProfile ? null : _saveProfile,
+                          child: _isSavingProfile
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Сохранить'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(
+                    label: 'Дата регистрации',
+                    value: _profile!['created_at'],
+                  ),
+                ],
+                const SizedBox(height: 80), // отступ снизу под ссылку
               ],
             ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              label: 'Дата регистрации',
-              value: _profile!['created_at'],
-            ),
-          ],
-          const SizedBox(height: 12),
-          if (!_isEditing) ...[
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _isSavingProfile ? null : _startEditing,
-                child: const Text('Редактировать'),
+          ),
+        ),
+        if (!_isEditing)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _isDeletingAccount ? null : _requestDeleteAccount,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: _isDeletingAccount
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Удалить аккаунт',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _isLoggingOut ? null : _logout,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                foregroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: _isLoggingOut
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Выйти'),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -451,7 +556,25 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const Navigationdrawer(),
-      appBar: const MainAppBar(title: 'Профиль'),
+      appBar: MainAppBar(
+        title: 'Профиль',
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              tooltip: 'Редактировать профиль',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: (_isSavingProfile || _isLoggingOut || _isDeletingAccount)
+                  ? null
+                  : _startEditing,
+            ),
+          if (!_isEditing)
+            IconButton(
+              tooltip: 'Выйти',
+              icon: const Icon(Icons.logout),
+              onPressed: (_isLoggingOut || _isDeletingAccount) ? null : _requestLogout,
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
