@@ -33,7 +33,9 @@ import 'dart:async';
 import 'package:oil_gid/core/deeplink/deep_link_controller.dart';
 import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:cached_query/cached_query.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   CachedQuery.instance.config(
@@ -43,9 +45,7 @@ Future<void> main() async {
     ),
   );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-    !kDebugMode,
-  );
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
@@ -60,9 +60,23 @@ Future<void> main() async {
 
   final accepted = await _checkPrivacyAccepted();
 
-  runApp(
-    ProviderScope(
-      child: MyApp(privacyAccepted: accepted, analytics: analytics),
+  await SentryFlutter.init(
+    (options) {
+      options.dsn =
+          'https://29cf7334179ac2f3946eecb7b1efc8f1@o4511083723751424.ingest.de.sentry.io/4511083725389904';
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+      // We recommend adjusting this value in production.
+      options.tracesSampleRate = 1.0;
+      // The sampling rate for profiling is relative to tracesSampleRate
+      // Setting to 1.0 will profile 100% of sampled transactions:
+      options.profilesSampleRate = 1.0;
+    },
+    appRunner: () => runApp(
+      SentryWidget(
+        child: ProviderScope(
+          child: MyApp(privacyAccepted: accepted, analytics: analytics),
+        ),
+      ),
     ),
   );
 }
@@ -144,8 +158,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    
-
     return MaterialApp(
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,

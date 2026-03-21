@@ -26,9 +26,7 @@ class _AboutState extends State<About> {
     final packageInfo = await PackageInfo.fromPlatform();
     final version = packageInfo.version.trim();
     final buildNumber = packageInfo.buildNumber.trim();
-    final formatted = buildNumber.isEmpty
-        ? version
-        : '$version ($buildNumber)';
+    final formatted = buildNumber.isEmpty ? version : '$version ($buildNumber)';
 
     if (!mounted) return;
     setState(() {
