@@ -1,5 +1,8 @@
+import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/pages/blog.dart';
 import 'package:oil_gid/pages/car_history_selected.dart';
@@ -40,6 +43,15 @@ Future<void> main() async {
     ),
   );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+    !kDebugMode,
+  );
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   await AppApi().initApp();
   await Hive.initFlutter();
