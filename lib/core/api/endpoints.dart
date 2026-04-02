@@ -52,4 +52,7 @@ class Endpoints {
 
   // shops catalog
   static const shopCatalog = '/shops/catalog';
+
+  // add car request
+  static const addCarRequest = '/add_car_from_request';
 }

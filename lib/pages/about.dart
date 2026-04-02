@@ -151,16 +151,16 @@ class _AboutState extends State<About> {
 }
 
 Future<void> openInstagram() async {
-  final Uri uri = Uri.parse('instagram://user?username=your_username');
+  final Uri uri = Uri.parse('instagram://user?username=oil_gid');
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
     // fallback на веб, если Instagram не установлен
-    final Uri webUri = Uri.parse('https://instagram.com/your_username');
+    final Uri webUri = Uri.parse('https://instagram.com/oil_gid');
     await launchUrl(webUri, mode: LaunchMode.externalApplication);
   }
 }
 
 Future<void> openTelegram() async {
-  const String username = 'your_username'; // например, @oil_gid
+  const String username = 'OilGid'; // например, @oil_gid
   final Uri appUri = Uri.parse('tg://resolve?domain=$username');
   final Uri webUri = Uri.parse('https://t.me/$username');
 

@@ -31,6 +31,7 @@ import 'package:oil_gid/core/deeplink/deep_link_controller.dart';
 import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:cached_query/cached_query.dart';
+import 'package:oil_gid/pages/add_car_request_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   CachedQuery.instance.config(
@@ -185,6 +186,7 @@ class _MyAppState extends State<MyApp> {
         '/online_shop_details': (context) => const OnlineShopDetailsPage(),
         '/shops_catalog': (context) => const ShopsCatalogPage(),
         '/profile': (context) => const ProfilePage(),
+        '/add_car_request': (context) => const AddCarRequestPage(),
       },
     );
   }

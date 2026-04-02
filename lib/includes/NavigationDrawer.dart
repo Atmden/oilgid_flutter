@@ -5,8 +5,6 @@ import 'package:oil_gid/core/storage/token_storage.dart';
 import 'package:oil_gid/lang/ru.dart';
 import 'package:oil_gid/model/NavigationItem.dart';
 import 'package:oil_gid/pages/about.dart';
-import 'package:oil_gid/pages/blog.dart';
-import 'package:oil_gid/pages/home_page.dart';
 import 'package:oil_gid/themes/default.dart';
 
 class Navigationdrawer extends StatefulWidget {

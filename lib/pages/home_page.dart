@@ -4,6 +4,7 @@ import 'package:oil_gid/includes/car_info_card.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
 import 'package:oil_gid/includes/oil_catalog_card.dart';
 import 'package:oil_gid/includes/shops_catalog_card.dart';
+import 'package:oil_gid/includes/add_car_request_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,6 +31,8 @@ class _HomePageState extends State<HomePage> {
               OilCatalogCard(),
               SizedBox(height: 16),
               ShopsCatalogCard(),
+              SizedBox(height: 16),
+              AddCarRequestCard(),
               SizedBox(height: 16),
               // QuickActions(),
             ],

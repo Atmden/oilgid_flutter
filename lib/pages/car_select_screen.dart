@@ -142,7 +142,7 @@ class _CarSelectScreenState extends State<CarSelectScreen> {
               ),
 
               const SizedBox(height: 16),
-              if (selectedCarMark != null && selectedCarMark!.id != null)
+              if (selectedCarMark != null && selectedCarMark?.id != null)
                 CarModelDropdown(
                   markId: selectedCarMark!.id,
                   value: selectedCarModel,

@@ -48,4 +48,9 @@ class AppApi {
 
     return response.data?['data'] as String? ?? '';
   }
+  
+  Future<Map<String, dynamic>> addCarRequest(Map<String, dynamic> data) async {
+    final response = await _dio.post(Endpoints.addCarRequest, data: data);
+    return response.data;
+  }
 }
