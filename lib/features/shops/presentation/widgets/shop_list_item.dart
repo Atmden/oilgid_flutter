@@ -37,6 +37,7 @@ class ShopListItem extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (shop.city.isNotEmpty) Text(shop.city),
             if (shop.address.isNotEmpty) Text(shop.address),
             if (shop.phone != null && shop.phone!.isNotEmpty)
               Text('Тел: ${shop.phone}'),

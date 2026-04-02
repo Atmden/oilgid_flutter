@@ -124,6 +124,7 @@ class _ShopPageState extends State<ShopPage> {
 
               final name = details.name;
               final address = details.address;
+              final city = details.city;
               final workingHours = _resolvedOptional(
                 details.workingHours,
                 shop?.workingHours,
@@ -146,6 +147,7 @@ class _ShopPageState extends State<ShopPage> {
                     shopId: shareShopId,
                     shopName: name,
                     address: address,
+                    city: city,
                     workingHours: workingHours,
                     phone: phone,
                     email: email,
@@ -212,6 +214,7 @@ class _InfoCard extends StatelessWidget {
   final String shopId;
   final String shopName;
   final String address;
+  final String city;
   final String? workingHours;
   final String? phone;
   final String? email;
@@ -224,6 +227,7 @@ class _InfoCard extends StatelessWidget {
     required this.shopId,
     required this.shopName,
     required this.address,
+    required this.city,
     required this.workingHours,
     required this.phone,
     required this.email,
@@ -250,6 +254,7 @@ class _InfoCard extends StatelessWidget {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
+          _InfoRow(label: 'Город', value: city),
           _InfoRow(label: 'Адрес', value: address),
           _InfoRow(label: 'Режим работы', value: workingHours),
           _InfoRow(label: 'Телефон', value: phone),
