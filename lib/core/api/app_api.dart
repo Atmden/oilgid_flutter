@@ -11,18 +11,33 @@ import '../../features/shops/data/datasource/shop_model_api.dart';
 import 'dio_client.dart';
 import 'endpoints.dart';
 
+class AppInitException implements Exception {
+  final String message;
+  final int? statusCode;
+  final Object? details;
+
+  const AppInitException(this.message, {this.statusCode, this.details});
+
+  @override
+  String toString() {
+    final codePart = statusCode == null ? '' : ' statusCode=$statusCode';
+    return 'AppInitException($message$codePart)';
+  }
+}
+
 class AppApi {
   final _dio = DioClient().dio;
 
   late final CarMarkApi carMarkApi = CarMarkApi(_dio);
   late final CarModelApi carModelApi = CarModelApi(_dio);
   late final CarGenerationApi carGenerationApi = CarGenerationApi(_dio);
-  late final CarConfigurationApi carConfigurationApi = CarConfigurationApi(_dio);
+  late final CarConfigurationApi carConfigurationApi = CarConfigurationApi(
+    _dio,
+  );
   late final CarModificationApi carModificationApi = CarModificationApi(_dio);
   late final OilApi oilApi = OilApi(_dio);
   late final ShopModelApi shopModelApi = ShopModelApi(_dio);
 
-  
   Future<Map<String, dynamic>> getConfig() async {
     final response = await _dio.get(Endpoints.appConfig);
     return response.data;
@@ -30,21 +45,46 @@ class AppApi {
 
   Future<void> initApp() async {
     final appToken = await TokenStorage().getAppToken();
-    if (appToken == null) {
-      final data = await InitTokenGenerator.generate();
-      final response = await _dio.post(Endpoints.appInit, data: data);
-      print(response.data);
-      final appToken = response.data['token'];
-      await TokenStorage().saveAppToken(appToken);
+    if (appToken != null && appToken.trim().isNotEmpty) {
+      return;
     }
+
+    final data = await InitTokenGenerator.generate();
+    final response = await _dio.post(Endpoints.appInit, data: data);
+
+    if (response.statusCode == null || response.statusCode! >= 400) {
+      throw AppInitException(
+        'initApp request failed',
+        statusCode: response.statusCode,
+        details: response.data,
+      );
+    }
+
+    final body = response.data;
+    if (body is! Map) {
+      throw AppInitException(
+        'initApp response has invalid body type',
+        statusCode: response.statusCode,
+        details: body,
+      );
+    }
+
+    final tokenRaw = body['token'];
+    if (tokenRaw is! String || tokenRaw.trim().isEmpty) {
+      throw AppInitException(
+        'initApp response does not contain a valid token',
+        statusCode: response.statusCode,
+        details: body,
+      );
+    }
+
+    await TokenStorage().saveAppToken(tokenRaw);
   }
 
   Future<String> getPrivacyPolicy() async {
     final response = await _dio.get<Map<String, dynamic>>(
       '/app/privacy-policy',
     );
-
-    print(response.data);
 
     return response.data?['data'] as String? ?? '';
   }
