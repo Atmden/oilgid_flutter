@@ -283,19 +283,23 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _openDeepLink(Uri uri) {
-    final action = DeepLinkParser.parse(uri);
-    if (action is OpenShopDeepLink) {
-      _navigatorKey.currentState?.pushNamed(
-        '/shop',
-        arguments: ShopPageInput.fromId(action.shopId),
-      );
-    }
+    try {
+      final action = DeepLinkParser.parse(uri);
+      if (action is OpenShopDeepLink) {
+        _navigatorKey.currentState?.pushNamed(
+          '/shop',
+          arguments: ShopPageInput.fromId(action.shopId),
+        );
+      }
 
-    if (action is OpenOilDeepLink) {
-      _navigatorKey.currentState?.pushNamed(
-        '/oil_details',
-        arguments: OilDetailsInput.fromId(action.oilId),
-      );
+      if (action is OpenOilDeepLink) {
+        _navigatorKey.currentState?.pushNamed(
+          '/oil_details',
+          arguments: OilDetailsInput.fromId(action.oilId),
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to open deep link $uri: $e');
     }
   }
 

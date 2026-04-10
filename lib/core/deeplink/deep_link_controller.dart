@@ -17,14 +17,24 @@ class DeepLinkController {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        onUri(initialUri);
+        try {
+          onUri(initialUri);
+        } catch (e) {
+          debugPrint('DeepLink initial handler error: $e');
+        }
       }
     } catch (e) {
       debugPrint('DeepLink initial error: $e');
     }
 
     _subscription = _appLinks.uriLinkStream.listen(
-      onUri,
+      (uri) {
+        try {
+          onUri(uri);
+        } catch (e) {
+          debugPrint('DeepLink stream handler error: $e');
+        }
+      },
       onError: (Object e) {
         debugPrint('DeepLink stream error: $e');
       },
