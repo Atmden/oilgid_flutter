@@ -232,7 +232,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InfoRow(label: 'Бренд', value: item.brandTitle),
-                  InfoRow(label: 'Вязкость', value: item.viscosityTitle),
+                  InfoRow(label: 'Вязкость/Тип масла', value: item.viscosityTitle),
                   if (_volume.isNotEmpty)
                     InfoRow(label: 'Требуемый объем', value: '$_volume л.'),
                   if (_description.isNotEmpty)
@@ -249,7 +249,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                     ),
                   if (item.specification != null)
                     ApprovalsGroup(
-                      title: 'OEM',
+                      title: 'Допуски и спецификации',
                       values: item.specification!.oemApprovals,
                     ),
                   if (item.specification != null)

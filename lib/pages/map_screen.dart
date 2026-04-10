@@ -355,7 +355,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                   value: product?.brandTitle ?? '',
                                 ),
                                 InfoRow(
-                                  label: 'Вязкость',
+                                  label: 'Вязкость/Тип масла',
                                   value: product?.viscosityTitle ?? '',
                                 ),
                                 const SizedBox(height: 12),
@@ -378,7 +378,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                   ),
                                 if (product?.specification != null)
                                   ApprovalsGroup(
-                                    title: 'OEM',
+                                    title: 'Допуски и спецификации',
                                     values: product!.specification!.oemApprovals,
                                   ),
                                 if (product?.specification != null)

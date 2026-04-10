@@ -26,10 +26,10 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   static const int _expandAnimationMs = 240;
   static const Map<String, String> _facetTitleMap = {
     'brand': 'Бренд',
-    'viscosity': 'Вязкость',
+    'viscosity': 'Вязкость/Тип масла',
     'api': 'API',
     'acea': 'ACEA',
-    'oem': 'OEM',
+    'oem': 'Допуски и спецификации',
     'ilsac': 'ILSAC',
     'iso': 'ISO',
     'isovg': 'ISO VG',

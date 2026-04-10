@@ -203,7 +203,7 @@ class _OnlineShopDetailsPageState extends State<OnlineShopDetailsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       InfoRow(label: 'Бренд', value: oil.brandTitle),
-                      InfoRow(label: 'Вязкость', value: oil.viscosityTitle),
+                      InfoRow(label: 'Вязкость/Тип масла', value: oil.viscosityTitle),
                       const SizedBox(height: 8),
                       if (oil.specification != null)
                         ApprovalsGroup(
@@ -217,7 +217,7 @@ class _OnlineShopDetailsPageState extends State<OnlineShopDetailsPage> {
                         ),
                       if (oil.specification != null)
                         ApprovalsGroup(
-                          title: 'OEM',
+                          title: 'Допуски и спецификации',
                           values: oil.specification!.oemApprovals,
                         ),
                       if (oil.specification != null)
@@ -311,7 +311,7 @@ class _OnlineShopDetailsPageState extends State<OnlineShopDetailsPage> {
       'Магазин: $shopName',
       'Наименование: ${oil.title}',
       'Бренд: ${oil.brandTitle}',
-      'Вязкость: ${oil.viscosityTitle}',
+      'Вязкость/Тип масла: ${oil.viscosityTitle}',
     ];
     if (volume.trim().isNotEmpty) {
       lines.add('Требуемый объем: $volume л.');
