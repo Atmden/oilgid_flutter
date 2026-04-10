@@ -26,8 +26,12 @@ class ShopModelApi {
       Endpoints.oilShopsMarkers.replaceAll('{oil_id}', oilId.toString()),
       queryParameters: query.isEmpty ? null : query,
     );
-    final List<dynamic> data = response.data['data'];
-    return data.map((json) => ShopModel.fromJson(json)).toList();
+    final data = response.data is Map ? response.data['data'] : null;
+    final List<dynamic> normalized = data is List ? data : const [];
+    return normalized
+        .whereType<Map<String, dynamic>>()
+        .map((json) => ShopModel.fromJson(json))
+        .toList();
   }
 
   Future<List<OilItem>> getShopProducts({required int shopId}) async {
