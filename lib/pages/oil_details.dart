@@ -75,6 +75,11 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
         _item = item;
       });
       _loadShopsForItem(item);
+    }).catchError((Object error, StackTrace stackTrace) {
+      // В этом сценарии FutureBuilder сам покажет экран ошибки.
+      // Здесь важно не допустить необработанное async-исключение, которое
+      // может завершить приложение в release-сборке.
+      debugPrint('Failed to load oil details: $error');
     });
   }
 
@@ -102,21 +107,26 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   }
 
   Future<Position?> _loadUserLocation() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) return null;
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return null;
 
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
+      return Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      debugPrint('Failed to load user location: $e');
       return null;
     }
-
-    return Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
   }
 
   @override
