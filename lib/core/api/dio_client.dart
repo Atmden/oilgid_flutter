@@ -23,6 +23,12 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final skipAuth = options.extra['skipAuth'] == true;
+          if (skipAuth) {
+            handler.next(options);
+            return;
+          }
+
           final userToken = await _tokenStorage.getUserToken();
           final appToken = await _tokenStorage.getAppToken();
 

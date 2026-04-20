@@ -25,6 +25,7 @@ class ShopModelApi {
     final response = await dio.get(
       Endpoints.oilShopsMarkers.replaceAll('{oil_id}', oilId.toString()),
       queryParameters: query.isEmpty ? null : query,
+      options: Options(extra: {'skipAuth': true}),
     );
     final data = response.data is Map ? response.data['data'] : null;
     final List<dynamic> normalized = data is List ? data : const [];
@@ -49,6 +50,7 @@ class ShopModelApi {
   Future<ShopDetailsModel> getShopDetails({required int shopId}) async {
     final response = await dio.get(
       Endpoints.shopDetails.replaceAll('{shop_id}', shopId.toString()),
+      options: Options(extra: {'skipAuth': true}),
     );
 
     final data = response.data['data'] as Map<String, dynamic>? ?? const {};

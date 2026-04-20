@@ -129,9 +129,29 @@ class OilApi {
   Future<OilItem> getOilById({required int oilId}) async {
     final response = await dio.get(
       Endpoints.oilDetails.replaceAll('{oil_id}', oilId.toString()),
+      options: Options(extra: {'skipAuth': true}),
     );
-    final data = response.data['data'] as Map<String, dynamic>? ?? const {};
-    return OilItemModel.fromJson(data);
+    final root = response.data;
+    final rawData = root is Map ? root['data'] : null;
+
+    Map<String, dynamic>? payload;
+    if (rawData is Map<String, dynamic>) {
+      if (rawData['id'] is int) {
+        payload = rawData;
+      } else if (rawData['data'] is Map<String, dynamic>) {
+        payload = rawData['data'] as Map<String, dynamic>;
+      } else if (rawData['oil'] is Map<String, dynamic>) {
+        payload = rawData['oil'] as Map<String, dynamic>;
+      }
+    } else if (root is Map<String, dynamic> && root['oil'] is Map<String, dynamic>) {
+      payload = root['oil'] as Map<String, dynamic>;
+    }
+
+    if (payload == null || (payload['id'] is! int)) {
+      throw FormatException('Invalid oil details payload for oilId=$oilId');
+    }
+
+    return OilItemModel.fromJson(payload);
   }
 
   Future<OilCatalogResult> getOilsCatalog({
