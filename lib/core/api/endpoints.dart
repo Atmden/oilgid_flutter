@@ -55,4 +55,19 @@ class Endpoints {
 
   // add car request
   static const addCarRequest = '/add_car_from_request';
+
+  // garage
+  static const garageCars = '/garage/cars';
+  static const garageCar = '/garage/cars/{id}';
+  static const garageServiceRecords = '/garage/service-records';
+  static const garageServiceRecord = '/garage/service-records/{id}';
+  static const garageServiceRecordMedia = '/garage/service-records/{id}/media';
+  static const garageServiceRecordMediaDelete =
+      '/garage/service-records/{id}/media/{mediaId}';
+
+  // subscription
+  static const subscriptionPlans = '/subscription/plans';
+  static const subscriptionStatus = '/subscription/status';
+  static const subscriptionValidatePurchase = '/subscription/validate-purchase';
+  static const subscriptionRestore = '/subscription/restore';
 }

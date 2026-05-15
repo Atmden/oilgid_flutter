@@ -49,6 +49,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Для добавления фото к записям сервисной книги</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Для съёмки фото к записям сервисной книги</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Нам нужна геолокация, чтобы показать ближайшие магазины.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -61,5 +65,11 @@
 		<false/>
 		<key>ITSEncryptionExportComplianceCode</key>
 		<string>0</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>yandexmaps</string>
+			<string>dgis</string>
+			<string>comgooglemaps</string>
+		</array>
 </dict>
 </plist>

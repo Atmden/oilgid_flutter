@@ -22,12 +22,19 @@ import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'dart:async';
+import 'package:oil_gid/core/api/dio_client.dart';
 import 'package:oil_gid/core/deeplink/deep_link_controller.dart';
 import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:cached_query/cached_query.dart';
 import 'package:oil_gid/pages/add_car_request_page.dart';
+import 'package:oil_gid/pages/garage_car_form_page.dart';
+import 'package:oil_gid/pages/garage_car_page.dart';
+import 'package:oil_gid/pages/garage_page.dart';
+import 'package:oil_gid/pages/garage_service_record_form_page.dart';
+import 'package:oil_gid/pages/garage_service_record_page.dart';
+import 'package:oil_gid/pages/paywall_page.dart';
 import 'package:oil_gid/core/startup/startup_controller.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
@@ -259,6 +266,7 @@ class _MyAppState extends State<MyApp> {
   late final DeepLinkController _deepLinkController;
   late bool _privacyAccepted;
   Uri? _pendingUri;
+  StreamSubscription<void>? _unauthorizedSub;
 
   @override
   void initState() {
@@ -266,10 +274,17 @@ class _MyAppState extends State<MyApp> {
     _privacyAccepted = widget.privacyAccepted;
     _deepLinkController = DeepLinkController(onUri: _onIncomingUri);
     unawaited(_deepLinkController.start());
+    _unauthorizedSub = DioClient.onUnauthorized.stream.listen((_) {
+      _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
+    });
   }
 
   @override
   void dispose() {
+    _unauthorizedSub?.cancel();
     unawaited(_deepLinkController.dispose());
     super.dispose();
   }
@@ -374,6 +389,14 @@ class _MyAppState extends State<MyApp> {
         '/shops_catalog': (context) => const ShopsCatalogPage(),
         '/profile': (context) => const ProfilePage(),
         '/add_car_request': (context) => const AddCarRequestPage(),
+        '/garage': (context) => const GaragePage(),
+        '/garage/car': (context) => const GarageCarPage(),
+        '/garage/car/form': (context) => const GarageCarFormPage(),
+        '/garage/service-record': (context) =>
+            const GarageServiceRecordPage(),
+        '/garage/service-record/form': (context) =>
+            const GarageServiceRecordFormPage(),
+        '/paywall': (context) => const PaywallPage(),
       },
     );
   }

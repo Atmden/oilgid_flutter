@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/core/api/user_api.dart';
 import 'package:oil_gid/core/api/auth_api.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
+import 'package:oil_gid/features/subscription/domain/entities/subscription_status.dart';
 import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
+import 'package:oil_gid/themes/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _userApi = UserApi();
   final _authApi = AuthApi();
   final _tokenStorage = TokenStorage();
+  final _subscriptionApi = AppApi().subscriptionApi;
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _birthDateController = TextEditingController();
@@ -29,6 +36,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isSavingProfile = false;
   String? _errorMessage;
   Map<String, dynamic>? _profile;
+  SubscriptionStatus? _subscription;
 
   @override
   void initState() {
@@ -50,11 +58,17 @@ class _ProfilePageState extends State<ProfilePage> {
       _errorMessage = null;
     });
     try {
-      final profile = await _userApi.getProfile();
+      final results = await Future.wait([
+        _userApi.getProfile(),
+        _subscriptionApi.getStatus().then<SubscriptionStatus?>((s) => s).catchError((_) => null),
+      ]);
+      final profile = results[0] as Map<String, dynamic>;
+      final subscription = results[1] as SubscriptionStatus?;
       await _tokenStorage.saveUserProfile(profile);
       if (!mounted) return;
       setState(() {
         _profile = profile;
+        _subscription = subscription;
         _errorMessage = null;
         _isEditing = false;
       });
@@ -332,6 +346,101 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _openSubscriptionManagement() async {
+    final Uri url;
+    if (Platform.isIOS) {
+      url = Uri.parse('https://apps.apple.com/account/subscriptions');
+    } else {
+      url = Uri.parse(
+        'https://play.google.com/store/account/subscriptions'
+        '?package=com.avtomastersoft.oilgid',
+      );
+    }
+    await launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
+  Widget _buildSubscriptionSection() {
+    final sub = _subscription;
+    final isActive = sub?.isActive == true;
+    final expiresAt = sub?.expiresAt;
+
+    String statusText;
+    Color statusColor;
+    if (isActive) {
+      statusText = 'Активна';
+      statusColor = AppColors.accentDark;
+      if (expiresAt != null) {
+        final d = expiresAt;
+        statusText += ' до ${d.day}.${d.month}.${d.year}';
+      }
+    } else {
+      statusText = 'Нет активной подписки';
+      statusColor = Colors.black45;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Подписка',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                isActive ? Icons.workspace_premium : Icons.workspace_premium_outlined,
+                size: 18,
+                color: isActive ? AppColors.accentDark : Colors.black38,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+          if (isActive) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _openSubscriptionManagement,
+                child: const Text('Управление подпиской'),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/paywall')
+                    .then((_) => _loadProfile()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Оформить подписку'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   String _formatValue(dynamic value) {
     final text = value?.toString().trim() ?? '';
     return text.isEmpty ? '—' : text;
@@ -517,7 +626,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     value: _profile!['created_at'],
                   ),
                 ],
-                const SizedBox(height: 80), // отступ снизу под ссылку
+                const SizedBox(height: 24),
+                _buildSubscriptionSection(),
+                const SizedBox(height: 8),
               ],
             ),
           ),

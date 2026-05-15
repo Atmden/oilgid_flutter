@@ -79,6 +79,11 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
               ),
 
               Navigationitem(
+                title: 'Гараж',
+                icon: Icons.garage_outlined,
+                onPressed: () => onItemPressed(context, index: 'garage'),
+              ),
+              Navigationitem(
                 title: 'Каталог магазинов',
                 icon: Icons.storefront,
                 onPressed: () => onItemPressed(context, index: 'shops_catalog'),
@@ -112,6 +117,9 @@ class _NavigationdrawerState extends State<Navigationdrawer> {
         } else {
           Navigator.pushNamed(context, '/login');
         }
+        break;
+      case 'garage':
+        Navigator.pushNamed(context, '/garage');
         break;
       case 'shops_catalog':
         Navigator.pushNamed(context, '/shops_catalog');

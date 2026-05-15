@@ -50,10 +50,11 @@ class _CarHistorySelectedState extends State<CarHistorySelected> {
                       return const SizedBox.shrink();
                     }
                     final item = CarHistoryModel.fromMap(data);
+                    final key = box.keyAt(box.length - 1 - index);
                     return CarHistoryCard(
                       item: item,
                       onDelete: () async {
-                        await box.deleteAt(box.length - 1 - index);
+                        await box.delete(key);
                         if (mounted) {
                           setState(() {});
                         }

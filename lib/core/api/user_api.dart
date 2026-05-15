@@ -31,7 +31,21 @@ class UserApi {
       data: {'email': email, 'password': password},
     );
 
-    await TokenStorage().saveUserToken(response.data['token']);
+    final body = response.data;
+    if (body is! Map<String, dynamic>) {
+      throw Exception('Некорректный ответ сервера.');
+    }
+
+    if (body['success'] == false) {
+      throw Exception(_extractMessage(body, 'Не удалось войти.'));
+    }
+
+    final token = body['token'];
+    if (token is! String || token.trim().isEmpty) {
+      throw Exception('Токен не найден в ответе сервера.');
+    }
+
+    await TokenStorage().saveUserToken(token);
   }
 
   Future<Map<String, dynamic>> updateProfile({

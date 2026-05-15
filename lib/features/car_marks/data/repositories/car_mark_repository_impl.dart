@@ -8,6 +8,9 @@ class CarMarkRepositoryImpl implements CarMarkRepository {
   CarMarkRepositoryImpl(this.api);
 
   @override
+  Null get value => null;
+
+  @override
   Future<List<CarMark>> getCarMarks({
     String? search,
     int page = 1,
@@ -16,7 +19,4 @@ class CarMarkRepositoryImpl implements CarMarkRepository {
     return api.getMarks(search: search, page: page, perPage: perPage);
   }
 
-  @override
-  // TODO: implement value
-  get value => throw UnimplementedError();
 }
