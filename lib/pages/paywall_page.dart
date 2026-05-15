@@ -6,6 +6,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 import 'package:oil_gid/features/subscription/domain/entities/subscription_plan.dart';
+import 'package:oil_gid/features/subscription/domain/entities/subscription_status.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 
 class PaywallPage extends StatefulWidget {
@@ -25,6 +26,7 @@ class _PaywallPageState extends State<PaywallPage> {
 
   bool _loading = true;
   bool _purchasing = false;
+  bool _alreadyActive = false;
   String? _error;
 
   late StreamSubscription<List<PurchaseDetails>> _purchaseSub;
@@ -53,6 +55,20 @@ class _PaywallPageState extends State<PaywallPage> {
       _error = null;
     });
     try {
+      // Проверяем активную подписку до загрузки планов
+      SubscriptionStatus? status;
+      try {
+        status = await _api.getStatus();
+      } catch (_) {}
+      if (status != null && status.isActive) {
+        if (!mounted) return;
+        setState(() {
+          _alreadyActive = true;
+          _loading = false;
+        });
+        return;
+      }
+
       final allPlans = await _api.getPlans();
       // Показываем только планы текущей платформы
       final List<SubscriptionPlan> plans = allPlans
@@ -255,7 +271,9 @@ class _PaywallPageState extends State<PaywallPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
+          : _alreadyActive
+              ? _buildAlreadyActive()
+              : _error != null
               ? _ErrorView(message: _error!, onRetry: _load)
               : _plans.isEmpty
                   ? const Center(
@@ -302,6 +320,46 @@ class _PaywallPageState extends State<PaywallPage> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildAlreadyActive() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.workspace_premium, size: 72, color: AppColors.accentDark),
+            const SizedBox(height: 24),
+            const Text(
+              'Подписка активна',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'У вас уже есть активная подписка. Все функции приложения доступны.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Отлично'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
