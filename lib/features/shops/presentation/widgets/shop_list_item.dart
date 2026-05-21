@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 import '../../domain/entities/shop.dart';
 
+String _formatPrice(double price) {
+  final intPart = price.truncate();
+  final s = intPart.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
+
 class ShopListItem extends StatelessWidget {
   final Shop shop;
   final VoidCallback? onTap;
@@ -18,6 +29,20 @@ class ShopListItem extends StatelessWidget {
     final cardColor = hasOnlinePurchase
         ? accentColor.withAlpha(90)
         : Colors.white;
+
+    Widget? trailingWidget;
+    if (shop.prices.isNotEmpty) {
+      final minPrice = shop.prices
+          .map((p) => p.price)
+          .whereType<double>()
+          .fold<double?>(null, (a, b) => a == null || b < a ? b : a);
+      if (minPrice != null) {
+        trailingWidget = Text(
+          'от ${_formatPrice(minPrice)} ₸',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        );
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -63,9 +88,7 @@ class ShopListItem extends StatelessWidget {
               ),
           ],
         ),
-        trailing: shop.price != null
-            ? Text('${shop.price!.toStringAsFixed(0)} ₸')
-            : null,
+        trailing: trailingWidget,
         isThreeLine: true,
       ),
     );

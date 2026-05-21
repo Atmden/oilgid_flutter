@@ -4,11 +4,22 @@ import 'package:oil_gid/core/utils/navigation_launcher.dart';
 import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.dart';
 import 'package:oil_gid/features/shops/domain/entities/shop.dart';
 import 'package:oil_gid/features/shops/domain/entities/shop_details.dart';
+import 'package:oil_gid/features/shops/domain/entities/shop_price.dart';
 import 'package:oil_gid/features/shops/presentation/widgets/shop_gallery.dart';
 import 'package:oil_gid/features/shops/presentation/shop_products_route_args.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
+
+String _formatPrice(double price) {
+  final s = price.truncate().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -152,8 +163,7 @@ class _ShopPageState extends State<ShopPage> {
                     phone: phone,
                     email: email,
                     website: website,
-                    price: shop?.price,
-                    quantity: shop?.quantity,
+                    prices: shop?.prices ?? const [],
                     distanceM: shop?.distanceM,
                   ),
                   const SizedBox(height: 12),
@@ -219,8 +229,7 @@ class _InfoCard extends StatelessWidget {
   final String? phone;
   final String? email;
   final String? website;
-  final double? price;
-  final int? quantity;
+  final List<ShopPrice> prices;
   final int? distanceM;
 
   const _InfoCard({
@@ -232,8 +241,7 @@ class _InfoCard extends StatelessWidget {
     required this.phone,
     required this.email,
     required this.website,
-    required this.price,
-    required this.quantity,
+    required this.prices,
     required this.distanceM,
   });
 
@@ -260,10 +268,34 @@ class _InfoCard extends StatelessWidget {
           _InfoRow(label: 'Телефон', value: phone),
           _InfoRow(label: 'Email', value: email),
           _InfoRow(label: 'Сайт', value: website),
-          if (price != null)
-            _InfoRow(label: 'Цена', value: price!.toStringAsFixed(2)),
-          if (quantity != null)
-            _InfoRow(label: 'Наличие', value: quantity.toString()),
+          if (prices.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(
+                    width: 110,
+                    child: Text(
+                      'Цены:',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: prices
+                          .map((p) => Text(
+                                p.price != null
+                                    ? '${p.label} — ${_formatPrice(p.price!)} ₸'
+                                    : p.label,
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (distanceM != null)
             _InfoRow(label: 'Расстояние', value: '$distanceM м'),
         ],

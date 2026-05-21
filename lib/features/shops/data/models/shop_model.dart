@@ -1,5 +1,6 @@
 import '../../domain/entities/shop.dart';
 import '../../../../core/utils/parsers.dart';
+import 'shop_price_model.dart';
 
 class ShopModel extends Shop {
   ShopModel({
@@ -14,14 +15,21 @@ class ShopModel extends Shop {
     required super.phone,
     required super.email,
     required super.website,
-    required super.price,
-    required super.quantity,
+    required super.prices,
     required super.lat,
     required super.lng,
     required super.distanceM,
   });
 
   factory ShopModel.fromJson(Map<String, dynamic> json) {
+    final pricesJson = json['prices'];
+    final prices = (pricesJson is List)
+        ? pricesJson
+            .whereType<Map<String, dynamic>>()
+            .map(ShopPriceModel.fromJson)
+            .toList()
+        : <ShopPriceModel>[];
+
     return ShopModel(
       id: toIntSafe(json['id']) ?? 0,
       name: json['name'] ?? '',
@@ -34,8 +42,7 @@ class ShopModel extends Shop {
       phone: json['phone'],
       email: json['email'],
       website: json['website'],
-      price: toDoubleSafe(json['price']),
-      quantity: toIntSafe(json['quantity']),
+      prices: prices,
       lat: toDoubleSafe(json['lat']),
       lng: toDoubleSafe(json['lng']),
       distanceM: toIntSafe(json['distance_m']),

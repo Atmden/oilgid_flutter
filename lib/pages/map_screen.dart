@@ -18,6 +18,16 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_approvals_group.dart';
 
+String _formatPrice(double price) {
+  final s = price.truncate().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
+
 class MapScreen extends ConsumerStatefulWidget {
   final List<Shop> shops;
 
@@ -305,11 +315,34 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             _infoRow('Email', email, 'email'),
                             _infoRow('Сайт', website, 'website'),
 
-                            if (shop.price != null)
-                              _infoRow('Цена', shop.price!.toStringAsFixed(2), 'price'),
-
-                            if (shop.quantity != null)
-                              _infoRow('Наличие', shop.quantity.toString(), 'quantity'),
+                            if (shop.prices.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(
+                                      width: 90,
+                                      child: Text(
+                                        'Цены:',
+                                        style: TextStyle(fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: shop.prices
+                                            .map((p) => Text(
+                                                  p.price != null
+                                                      ? '${p.label} — ${_formatPrice(p.price!)} ₸'
+                                                      : p.label,
+                                                ))
+                                            .toList(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
 
                             if (shop.distanceM != null)
                               _infoRow('Расстояние', '${shop.distanceM} м', 'distance'),

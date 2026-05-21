@@ -1,3 +1,5 @@
+import 'shop_price.dart';
+
 class Shop {
   final int id;
   final String name;
@@ -10,8 +12,7 @@ class Shop {
   final String? phone;
   final String? email;
   final String? website;
-  final double? price;
-  final int? quantity;
+  final List<ShopPrice> prices;
   final double? lat;
   final double? lng;
   final int? distanceM;
@@ -28,8 +29,7 @@ class Shop {
     this.phone,
     this.email,
     this.website,
-    this.price,
-    this.quantity,
+    this.prices = const [],
     this.lat,
     this.lng,
     this.distanceM,
@@ -37,6 +37,6 @@ class Shop {
 
   @override
   String toString() {
-    return 'Shop(id: $id, name: $name, address: $address, city: $city, onlinePurchaseAvailable: $onlinePurchaseAvailable, whatsappPhone: $whatsappPhone, workingHours: $workingHours, contacts: $contacts, phone: $phone, email: $email, website: $website, price: $price, quantity: $quantity, lat: $lat, lng: $lng, distanceM: $distanceM)';
+    return 'Shop(id: $id, name: $name, address: $address, city: $city, onlinePurchaseAvailable: $onlinePurchaseAvailable, whatsappPhone: $whatsappPhone, workingHours: $workingHours, contacts: $contacts, phone: $phone, email: $email, website: $website, prices: $prices, lat: $lat, lng: $lng, distanceM: $distanceM)';
   }
 }
