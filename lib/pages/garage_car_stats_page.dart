@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:oil_gid/features/garage/domain/entities/service_record.dart';
 import 'package:oil_gid/features/garage/presentation/garage_route_args.dart';
@@ -33,6 +35,10 @@ class GarageCarStatsPage extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Body
+// ---------------------------------------------------------------------------
+
 class _StatsBody extends StatefulWidget {
   final List<ServiceRecord> records;
 
@@ -49,12 +55,13 @@ class _StatsBodyState extends State<_StatsBody> {
   @override
   void initState() {
     super.initState();
-    _availableYears = widget.records
-        .map((r) => DateTime.tryParse(r.serviceDate)?.year ?? 0)
-        .where((y) => y > 0)
-        .toSet()
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
+    _availableYears =
+        widget.records
+            .map((r) => DateTime.tryParse(r.serviceDate)?.year ?? 0)
+            .where((y) => y > 0)
+            .toSet()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
 
     _selectedYear = _availableYears.isNotEmpty
         ? _availableYears.first
@@ -62,67 +69,67 @@ class _StatsBodyState extends State<_StatsBody> {
   }
 
   List<ServiceRecord> get _filtered => widget.records
-      .where((r) =>
-          (DateTime.tryParse(r.serviceDate)?.year ?? 0) == _selectedYear)
+      .where(
+        (r) => (DateTime.tryParse(r.serviceDate)?.year ?? 0) == _selectedYear,
+      )
       .toList();
 
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
     final total = filtered.fold<double>(0, (s, r) => s + (r.totalCost ?? 0));
-    final currency = filtered
-        .where((r) => r.currency != null)
-        .map((r) => r.currency!)
-        .fold<Map<String, int>>({}, (map, c) {
-      map[c] = (map[c] ?? 0) + 1;
-      return map;
-    }).entries.isEmpty
-        ? 'KZT'
-        : (filtered
-              .where((r) => r.currency != null)
-              .map((r) => r.currency!)
-              .fold<Map<String, int>>({}, (map, c) {
-                map[c] = (map[c] ?? 0) + 1;
-                return map;
-              })
-              .entries
-              .reduce((a, b) => a.value >= b.value ? a : b))
-            .key;
+    final currency = _dominantCurrency(filtered);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      children: [
-        // Год selector
-        if (_availableYears.length > 1)
-          _YearSelector(
-            years: _availableYears,
-            selected: _selectedYear,
-            onChanged: (y) => setState(() => _selectedYear = y),
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          if (_availableYears.length > 1)
+            _YearSelector(
+              years: _availableYears,
+              selected: _selectedYear,
+              onChanged: (y) => setState(() => _selectedYear = y),
+            ),
+
+          if (_availableYears.length > 1) const SizedBox(height: 16),
+
+          _DonutCard(
+            records: filtered,
+            currency: currency,
+            year: _selectedYear,
+          ),
+          const SizedBox(height: 20),
+          _SummaryCard(
+            total: total,
+            currency: currency,
+            count: filtered.length,
+            year: _selectedYear,
           ),
 
-        if (_availableYears.length > 1) const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-        // Итого
-        _SummaryCard(
-          total: total,
-          currency: currency,
-          count: filtered.length,
-          year: _selectedYear,
-        ),
+          _CategoryBreakdown(
+            records: filtered,
+            currency: currency,
+            year: _selectedYear,
+          ),
 
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-        // По категориям
-        _CategoryBreakdown(records: filtered, currency: currency),
-
-        const SizedBox(height: 20),
-
-        // По месяцам
-        _MonthlyChart(records: filtered, currency: currency, year: _selectedYear),
-      ],
+          _MonthlyChart(
+            records: filtered,
+            currency: currency,
+            year: _selectedYear,
+          ),
+        ],
+      ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Year selector
+// ---------------------------------------------------------------------------
 
 class _YearSelector extends StatelessWidget {
   final List<int> years;
@@ -149,7 +156,9 @@ class _YearSelector extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primarySoft : Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -176,6 +185,10 @@ class _YearSelector extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Summary card
+// ---------------------------------------------------------------------------
 
 class _SummaryCard extends StatelessWidget {
   final double total;
@@ -239,42 +252,589 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _CategoryBreakdown extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Donut card
+// ---------------------------------------------------------------------------
+
+enum _DonutPeriod { year, quarter, month }
+
+class _DonutCard extends StatefulWidget {
   final List<ServiceRecord> records;
   final String currency;
+  final int year;
 
-  const _CategoryBreakdown(
-      {required this.records, required this.currency});
+  const _DonutCard({
+    required this.records,
+    required this.currency,
+    required this.year,
+  });
+
+  @override
+  State<_DonutCard> createState() => _DonutCardState();
+}
+
+class _DonutCardState extends State<_DonutCard> {
+  _DonutPeriod _period = _DonutPeriod.year;
+  late int _selectedQuarter;
+  late int _selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    final months = widget.records
+        .map((r) => DateTime.tryParse(r.serviceDate)?.month ?? 0)
+        .where((m) => m > 0)
+        .toList();
+
+    if (months.isNotEmpty) {
+      final latest = months.reduce((a, b) => a > b ? a : b);
+      _selectedMonth = latest;
+      _selectedQuarter = ((latest - 1) ~/ 3) + 1;
+    } else {
+      _selectedMonth = DateTime.now().month;
+      _selectedQuarter = ((DateTime.now().month - 1) ~/ 3) + 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_DonutCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.records != widget.records) {
+      final months = widget.records
+          .map((r) => DateTime.tryParse(r.serviceDate)?.month ?? 0)
+          .where((m) => m > 0)
+          .toList();
+      if (months.isNotEmpty) {
+        final latest = months.reduce((a, b) => a > b ? a : b);
+        _selectedMonth = latest;
+        _selectedQuarter = ((latest - 1) ~/ 3) + 1;
+      }
+    }
+  }
+
+  List<ServiceRecord> get _periodRecords {
+    switch (_period) {
+      case _DonutPeriod.year:
+        return widget.records;
+      case _DonutPeriod.quarter:
+        final start = (_selectedQuarter - 1) * 3 + 1;
+        final end = _selectedQuarter * 3;
+        return widget.records.where((r) {
+          final m = DateTime.tryParse(r.serviceDate)?.month ?? 0;
+          return m >= start && m <= end;
+        }).toList();
+      case _DonutPeriod.month:
+        return widget.records.where((r) {
+          return DateTime.tryParse(r.serviceDate)?.month == _selectedMonth;
+        }).toList();
+    }
+  }
+
+  List<int> get _availableQuarters =>
+      widget.records
+          .map((r) => DateTime.tryParse(r.serviceDate)?.month ?? 0)
+          .where((m) => m > 0)
+          .map((m) => ((m - 1) ~/ 3) + 1)
+          .toSet()
+          .toList()
+        ..sort();
+
+  List<int> get _availableMonths =>
+      widget.records
+          .map((r) => DateTime.tryParse(r.serviceDate)?.month ?? 0)
+          .where((m) => m > 0)
+          .toSet()
+          .toList()
+        ..sort();
 
   @override
   Widget build(BuildContext context) {
-    final Map<int?, _CatStat> map = {};
-    for (final r in records) {
-      final key = r.categoryId;
-      final existing = map[key];
-      final amount = r.totalCost ?? 0;
-      if (existing == null) {
-        map[key] = _CatStat(
-          name: r.category?.name ?? 'Без категории',
-          icon: r.category?.icon ?? Icons.receipt_outlined,
-          color: r.category?.color ?? Colors.grey,
-          total: amount,
-          count: 1,
+    final pr = _periodRecords;
+    final cats = _groupByCategory(pr);
+    final total = pr.fold<double>(0, (s, r) => s + (r.totalCost ?? 0));
+
+    final segments = total > 0
+        ? cats
+              .map(
+                (c) => _DonutSegment(
+                  color: c.color,
+                  fraction: c.total / total,
+                  name: c.name,
+                  total: c.total,
+                  icon: c.icon,
+                ),
+              )
+              .toList()
+        : <_DonutSegment>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Статистика расходов',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: _PeriodSwitcher(
+                  period: _period,
+                  onChanged: (p) => setState(() => _period = p),
+                ),
+              ),
+              if (_period == _DonutPeriod.quarter)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  child: _QuarterSelector(
+                    available: _availableQuarters,
+                    selected: _selectedQuarter,
+                    onChanged: (q) => setState(() => _selectedQuarter = q),
+                  ),
+                ),
+              if (_period == _DonutPeriod.month)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  child: _MonthChips(
+                    available: _availableMonths,
+                    selected: _selectedMonth,
+                    onChanged: (m) => setState(() => _selectedMonth = m),
+                  ),
+                ),
+              if (segments.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 28),
+                  child: Text(
+                    'Нет данных за выбранный период',
+                    style: TextStyle(color: Colors.black38, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else ...[
+                const SizedBox(height: 20),
+                _DonutChart(
+                  segments: segments,
+                  total: total,
+                  currency: widget.currency,
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                _DonutLegend(segments: segments, currency: widget.currency),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Period switcher (Год / Квартал / Месяц)
+// ---------------------------------------------------------------------------
+
+class _PeriodSwitcher extends StatelessWidget {
+  final _DonutPeriod period;
+  final ValueChanged<_DonutPeriod> onChanged;
+
+  const _PeriodSwitcher({required this.period, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          _tab(_DonutPeriod.year, 'За год'),
+          _tab(_DonutPeriod.quarter, 'Квартал'),
+          _tab(_DonutPeriod.month, 'Месяц'),
+        ],
+      ),
+    );
+  }
+
+  Widget _tab(_DonutPeriod p, String label) {
+    final isSelected = period == p;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onChanged(p),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    const BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected ? Colors.black87 : Colors.black45,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Quarter selector (Q1 – Q4)
+// ---------------------------------------------------------------------------
+
+class _QuarterSelector extends StatelessWidget {
+  final List<int> available;
+  final int selected;
+  final ValueChanged<int> onChanged;
+
+  const _QuarterSelector({
+    required this.available,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(4, (i) {
+        final q = i + 1;
+        final hasData = available.contains(q);
+        final isSelected = q == selected;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: GestureDetector(
+            onTap: hasData ? () => onChanged(q) : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primarySoft : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primarySoft
+                      : hasData
+                      ? AppColors.border
+                      : AppColors.border.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Text(
+                'Q$q',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected
+                      ? Colors.white
+                      : hasData
+                      ? Colors.black87
+                      : Colors.black26,
+                ),
+              ),
+            ),
+          ),
         );
-      } else {
-        map[key] = _CatStat(
-          name: existing.name,
-          icon: existing.icon,
-          color: existing.color,
-          total: existing.total + amount,
-          count: existing.count + 1,
-        );
-      }
+      }),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Month chips (Янв – Дек)
+// ---------------------------------------------------------------------------
+
+class _MonthChips extends StatelessWidget {
+  final List<int> available;
+  final int selected;
+  final ValueChanged<int> onChanged;
+
+  const _MonthChips({
+    required this.available,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  static const _labels = [
+    'Янв',
+    'Фев',
+    'Мар',
+    'Апр',
+    'Май',
+    'Июн',
+    'Июл',
+    'Авг',
+    'Сен',
+    'Окт',
+    'Ноя',
+    'Дек',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(12, (i) {
+          final month = i + 1;
+          final hasData = available.contains(month);
+          final isSelected = month == selected;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: hasData ? () => onChanged(month) : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primarySoft
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.primarySoft
+                        : hasData
+                        ? AppColors.border
+                        : AppColors.border.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  _labels[i],
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? Colors.white
+                        : hasData
+                        ? Colors.black87
+                        : Colors.black26,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Donut chart
+// ---------------------------------------------------------------------------
+
+class _DonutSegment {
+  final Color color;
+  final double fraction;
+  final String name;
+  final double total;
+  final IconData icon;
+
+  const _DonutSegment({
+    required this.color,
+    required this.fraction,
+    required this.name,
+    required this.total,
+    required this.icon,
+  });
+}
+
+class _DonutChart extends StatelessWidget {
+  final List<_DonutSegment> segments;
+  final double total;
+  final String currency;
+
+  const _DonutChart({
+    required this.segments,
+    required this.total,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 170,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(170, 170),
+            painter: _DonutPainter(segments),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _formatAmount(total, currency),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'итого',
+                style: TextStyle(fontSize: 11, color: Colors.black38),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  final List<_DonutSegment> segments;
+
+  const _DonutPainter(this.segments);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const strokeWidth = 28.0;
+    final radius = size.shortestSide / 2 - strokeWidth / 2 - 4;
+    const gapAngle = 0.025;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt
+      ..isAntiAlias = true;
+
+    double startAngle = -math.pi / 2;
+
+    for (final seg in segments) {
+      final sweep = seg.fraction * 2 * math.pi;
+      final actualSweep = (sweep - gapAngle).clamp(0.001, 2 * math.pi);
+      paint.color = seg.color;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle + gapAngle / 2,
+        actualSweep,
+        false,
+        paint,
+      );
+      startAngle += sweep;
     }
+  }
 
-    final sorted = map.values.toList()
-      ..sort((a, b) => b.total.compareTo(a.total));
+  @override
+  bool shouldRepaint(_DonutPainter old) => old.segments != segments;
+}
 
+// ---------------------------------------------------------------------------
+// Donut legend
+// ---------------------------------------------------------------------------
+
+class _DonutLegend extends StatelessWidget {
+  final List<_DonutSegment> segments;
+  final String currency;
+
+  const _DonutLegend({required this.segments, required this.currency});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Column(
+        children: segments.asMap().entries.map((e) {
+          final i = e.key;
+          final seg = e.value;
+          final pct = (seg.fraction * 100);
+          final pctStr = pct < 1 ? '<1%' : '${pct.toStringAsFixed(0)}%';
+          return Column(
+            children: [
+              if (i > 0) const SizedBox(height: 10),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: seg.color,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(seg.icon, size: 14, color: seg.color),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      seg.name,
+                      style: const TextStyle(fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    pctStr,
+                    style: const TextStyle(fontSize: 12, color: Colors.black38),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _formatAmount(seg.total, currency),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Category breakdown (horizontal bars)
+// ---------------------------------------------------------------------------
+
+class _CategoryBreakdown extends StatelessWidget {
+  final List<ServiceRecord> records;
+  final String currency;
+  final int year;
+
+  const _CategoryBreakdown({
+    required this.records,
+    required this.currency,
+    required this.year,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = _groupByCategory(records);
     if (sorted.isEmpty) return const SizedBox.shrink();
 
     final maxAmount = sorted.first.total;
@@ -282,8 +842,8 @@ class _CategoryBreakdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'По категориям',
+        Text(
+          'По категориям за $year год',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -341,7 +901,7 @@ class _CategoryRow extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: stat.color.withOpacity(0.15),
+                  color: stat.color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(stat.icon, color: stat.color, size: 16),
@@ -351,13 +911,17 @@ class _CategoryRow extends StatelessWidget {
                 child: Text(
                   stat.name,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w500, fontSize: 14),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
                 ),
               ),
               Text(
                 _formatAmount(stat.total, currency),
                 style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 14),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -395,8 +959,7 @@ class _CategoryRow extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${stat.count} зап.',
-                style: const TextStyle(
-                    fontSize: 11, color: Colors.black38),
+                style: const TextStyle(fontSize: 11, color: Colors.black38),
               ),
             ],
           ),
@@ -405,6 +968,10 @@ class _CategoryRow extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Monthly bar chart
+// ---------------------------------------------------------------------------
 
 class _MonthlyChart extends StatelessWidget {
   final List<ServiceRecord> records;
@@ -418,8 +985,18 @@ class _MonthlyChart extends StatelessWidget {
   });
 
   static const _months = [
-    'Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн',
-    'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек',
+    'Янв',
+    'Фев',
+    'Мар',
+    'Апр',
+    'Май',
+    'Июн',
+    'Июл',
+    'Авг',
+    'Сен',
+    'Окт',
+    'Ноя',
+    'Дек',
   ];
 
   @override
@@ -438,8 +1015,8 @@ class _MonthlyChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'По месяцам',
+        Text(
+          'По месяцам за $year год',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -504,6 +1081,10 @@ class _MonthlyChart extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared models & helpers
+// ---------------------------------------------------------------------------
+
 class _CatStat {
   final String name;
   final IconData icon;
@@ -518,6 +1099,43 @@ class _CatStat {
     required this.total,
     required this.count,
   });
+}
+
+List<_CatStat> _groupByCategory(List<ServiceRecord> records) {
+  final Map<int?, _CatStat> map = {};
+  for (final r in records) {
+    final key = r.categoryId;
+    final amount = r.totalCost ?? 0;
+    final existing = map[key];
+    if (existing == null) {
+      map[key] = _CatStat(
+        name: r.category?.name ?? 'Без категории',
+        icon: r.category?.icon ?? Icons.receipt_outlined,
+        color: r.category?.color ?? Colors.grey,
+        total: amount,
+        count: 1,
+      );
+    } else {
+      map[key] = _CatStat(
+        name: existing.name,
+        icon: existing.icon,
+        color: existing.color,
+        total: existing.total + amount,
+        count: existing.count + 1,
+      );
+    }
+  }
+  return map.values.toList()..sort((a, b) => b.total.compareTo(a.total));
+}
+
+String _dominantCurrency(List<ServiceRecord> records) {
+  final counts = <String, int>{};
+  for (final r in records) {
+    if (r.currency != null)
+      counts[r.currency!] = (counts[r.currency!] ?? 0) + 1;
+  }
+  if (counts.isEmpty) return 'KZT';
+  return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
 }
 
 String _formatAmount(double amount, String currency) {

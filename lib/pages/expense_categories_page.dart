@@ -305,142 +305,171 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final mq = MediaQuery.of(context);
+    final keyboardHeight = mq.viewInsets.bottom;
+    final maxHeight = mq.size.height * 0.9;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                isEdit ? 'Редактировать категорию' : 'Новая категория',
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: _nameController,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Название *',
-              border: OutlineInputBorder(),
-              filled: true,
-              fillColor: Color(0xFFF9F9F9),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Выбор цвета
-          Row(
-            children: [
-              const Text('Цвет:', style: TextStyle(fontSize: 14)),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: _pickColor,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: _selectedColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: _pickColor,
-                child: const Text('Изменить'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Выбор иконки
-          const Text('Иконка:', style: TextStyle(fontSize: 14)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 200,
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 6,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-              ),
-              itemCount: iconRegistry.length,
-              itemBuilder: (context, index) {
-                final entry = iconRegistry.entries.elementAt(index);
-                final isSelected = entry.key == _selectedIconKey;
-                return GestureDetector(
-                  onTap: () =>
-                      setState(() => _selectedIconKey = entry.key),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 120),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? _selectedColor.withOpacity(0.15)
-                          : const Color(0xFFF2F2F2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected
-                            ? _selectedColor
-                            : Colors.transparent,
-                        width: 2,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 8, 0),
+                child: Row(
+                  children: [
+                    Text(
+                      isEdit ? 'Редактировать категорию' : 'Новая категория',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: Icon(
-                      entry.value,
-                      size: 22,
-                      color: isSelected ? _selectedColor : Colors.black54,
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _nameController,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Название *',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Color(0xFFF9F9F9),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          const Text('Цвет:', style: TextStyle(fontSize: 14)),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: _pickColor,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: _selectedColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.border),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: _pickColor,
+                            child: const Text('Изменить'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      const Text('Иконка:', style: TextStyle(fontSize: 14)),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 200,
+                        child: GridView.builder(
+                          physics: const ClampingScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 6,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                          ),
+                          itemCount: iconRegistry.length,
+                          itemBuilder: (context, index) {
+                            final entry =
+                                iconRegistry.entries.elementAt(index);
+                            final isSelected = entry.key == _selectedIconKey;
+                            return GestureDetector(
+                              onTap: () =>
+                                  setState(() => _selectedIconKey = entry.key),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 120),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? _selectedColor.withValues(alpha: 0.15)
+                                      : const Color(0xFFF2F2F2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? _selectedColor
+                                        : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Icon(
+                                  entry.value,
+                                  size: 22,
+                                  color: isSelected
+                                      ? _selectedColor
+                                      : Colors.black54,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      if (_error != null) ...[
+                        const SizedBox(height: 8),
+                        Text(_error!,
+                            style: const TextStyle(color: Colors.red)),
+                      ],
+
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                );
-              },
-            ),
-          ),
-
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-          ],
-
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _isSaving ? null : _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primarySoft,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+                ),
+              ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primarySoft,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                  )
-                : Text(isEdit ? 'Сохранить' : 'Создать'),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(isEdit ? 'Сохранить' : 'Создать'),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

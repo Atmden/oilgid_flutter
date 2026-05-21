@@ -27,6 +27,7 @@ class _PaywallPageState extends State<PaywallPage> {
   bool _loading = true;
   bool _purchasing = false;
   bool _alreadyActive = false;
+  bool _requiresLogin = false;
   String? _error;
 
   late StreamSubscription<List<PurchaseDetails>> _purchaseSub;
@@ -53,8 +54,20 @@ class _PaywallPageState extends State<PaywallPage> {
     setState(() {
       _loading = true;
       _error = null;
+      _requiresLogin = false;
     });
     try {
+      // Без токена планы не грузим — просим войти
+      final userToken = await TokenStorage().getUserToken();
+      if (userToken == null || userToken.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _requiresLogin = true;
+          _loading = false;
+        });
+        return;
+      }
+
       // Проверяем активную подписку до загрузки планов
       SubscriptionStatus? status;
       try {
@@ -92,11 +105,12 @@ class _PaywallPageState extends State<PaywallPage> {
       setState(() {
         _plans = plans;
         _storeProducts = storeProducts;
-        // По умолчанию выбираем месячный план
-        _selected = plans.firstWhere(
-          (p) => p.billingPeriod == 'monthly',
-          orElse: () => plans.first,
-        );
+        _selected = plans.isEmpty
+            ? null
+            : plans.firstWhere(
+                (p) => p.billingPeriod == 'monthly',
+                orElse: () => plans.first,
+              );
         _loading = false;
       });
     } catch (e) {
@@ -271,18 +285,20 @@ class _PaywallPageState extends State<PaywallPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _alreadyActive
-              ? _buildAlreadyActive()
-              : _error != null
-              ? _ErrorView(message: _error!, onRetry: _load)
-              : _plans.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Тарифы временно недоступны.',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                    )
-                  : _buildContent(),
+          : _requiresLogin
+              ? _buildRequiresLogin()
+              : _alreadyActive
+                  ? _buildAlreadyActive()
+                  : _error != null
+                      ? _ErrorView(message: _error!, onRetry: _load)
+                      : _plans.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Тарифы временно недоступны.',
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                            )
+                          : _buildContent(),
     );
   }
 
@@ -320,6 +336,47 @@ class _PaywallPageState extends State<PaywallPage> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildRequiresLogin() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_outline, size: 72, color: Colors.black26),
+            const SizedBox(height: 24),
+            const Text(
+              'Требуется вход',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Для оформления подписки необходимо войти в аккаунт.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/login')
+                    .then((_) => _load()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Войти'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
