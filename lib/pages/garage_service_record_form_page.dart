@@ -2,33 +2,37 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/garage/domain/entities/attachment.dart';
+import 'package:oil_gid/features/garage/domain/entities/expense_category.dart';
 import 'package:oil_gid/features/garage/presentation/garage_route_args.dart';
+import 'package:oil_gid/features/garage/presentation/providers/expense_categories_provider.dart';
+import 'package:oil_gid/features/garage/presentation/widgets/category_picker.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 
-class GarageServiceRecordFormPage extends StatefulWidget {
+class GarageServiceRecordFormPage extends ConsumerStatefulWidget {
   const GarageServiceRecordFormPage({super.key});
 
   @override
-  State<GarageServiceRecordFormPage> createState() =>
+  ConsumerState<GarageServiceRecordFormPage> createState() =>
       _GarageServiceRecordFormPageState();
 }
 
 class _GarageServiceRecordFormPageState
-    extends State<GarageServiceRecordFormPage> {
+    extends ConsumerState<GarageServiceRecordFormPage> {
   final _garageApi = AppApi().garageApi;
   final _picker = ImagePicker();
 
   late GarageServiceRecordFormArgs _args;
   bool _initialized = false;
 
-  final _serviceTypeController = TextEditingController();
   final _mileageController = TextEditingController();
   final _totalCostController = TextEditingController();
   final _notesController = TextEditingController();
 
+  ExpenseCategory? _selectedCategory;
   String _selectedCurrency = 'KZT';
   DateTime _selectedDate = DateTime.now();
 
@@ -54,7 +58,7 @@ class _GarageServiceRecordFormPageState
 
     final record = _args.record;
     if (record != null) {
-      _serviceTypeController.text = record.serviceType;
+      _selectedCategory = record.category;
       _mileageController.text = record.mileage?.toString() ?? '';
       _totalCostController.text = record.totalCost != null
           ? record.totalCost!.toStringAsFixed(2)
@@ -78,7 +82,6 @@ class _GarageServiceRecordFormPageState
 
   @override
   void dispose() {
-    _serviceTypeController.dispose();
     _mileageController.dispose();
     _totalCostController.dispose();
     _notesController.dispose();
@@ -121,7 +124,8 @@ class _GarageServiceRecordFormPageState
               title: const Text('Сделать фото'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final file = await _picker.pickImage(source: ImageSource.camera);
+                final file =
+                    await _picker.pickImage(source: ImageSource.camera);
                 if (file != null) {
                   setState(() => _newFiles.add(file));
                 }
@@ -182,9 +186,8 @@ class _GarageServiceRecordFormPageState
   }
 
   Future<void> _save() async {
-    final serviceType = _serviceTypeController.text.trim();
-    if (serviceType.isEmpty) {
-      setState(() => _error = 'Введите тип обслуживания.');
+    if (_selectedCategory == null) {
+      setState(() => _error = 'Выберите категорию.');
       return;
     }
 
@@ -209,7 +212,7 @@ class _GarageServiceRecordFormPageState
       final data = <String, dynamic>{
         'user_car_id': _args.userCarId,
         'service_date': dateStr,
-        'service_type': serviceType,
+        'category_id': _selectedCategory!.id,
         if (_mileageController.text.trim().isNotEmpty)
           'mileage': int.tryParse(_mileageController.text.trim()),
         'total_cost': _items.isNotEmpty
@@ -225,7 +228,6 @@ class _GarageServiceRecordFormPageState
           ? await _garageApi.updateServiceRecord(_args.record!.id, data)
           : await _garageApi.createServiceRecord(data);
 
-      // Загрузить новые файлы — ошибки загрузки не блокируют сохранение записи
       String? uploadError;
       for (final file in _newFiles) {
         try {
@@ -238,7 +240,10 @@ class _GarageServiceRecordFormPageState
       if (!mounted) return;
       if (uploadError != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(uploadError), backgroundColor: Colors.orange),
+          SnackBar(
+            content: Text(uploadError),
+            backgroundColor: Colors.orange,
+          ),
         );
       }
       Navigator.pop(context, true);
@@ -251,6 +256,13 @@ class _GarageServiceRecordFormPageState
       if (!mounted) return;
       setState(() => _isSaving = false);
     }
+  }
+
+  void _openManageCategories() {
+    Navigator.pushNamed(context, '/garage/expense-categories').then((_) {
+      // Invalidate provider so picker refreshes if categories changed
+      ref.invalidate(expenseCategoriesProvider);
+    });
   }
 
   @override
@@ -295,23 +307,35 @@ class _GarageServiceRecordFormPageState
                       ),
                       const Spacer(),
                       const Text(
-                        'Дата обслуживания',
+                        'Дата',
                         style: TextStyle(fontSize: 12, color: Colors.black45),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              TextField(
-                controller: _serviceTypeController,
-                decoration: const InputDecoration(
-                  labelText: 'Тип обслуживания *',
-                  hintText: 'Например: Замена масла и фильтров',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white,
+              // Категория
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _error != null && _selectedCategory == null
+                        ? Colors.red
+                        : AppColors.border,
+                  ),
+                ),
+                child: CategoryPicker(
+                  selected: _selectedCategory,
+                  onSelected: (cat) =>
+                      setState(() {
+                        _selectedCategory = cat;
+                        _error = null;
+                      }),
+                  onManageCategories: _openManageCategories,
                 ),
               ),
               const SizedBox(height: 12),
@@ -367,7 +391,9 @@ class _GarageServiceRecordFormPageState
                         fillColor: Colors.white,
                       ),
                       items: _currencies
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
                           .toList(),
                       onChanged: (v) {
                         if (v != null) setState(() => _selectedCurrency = v);
@@ -496,7 +522,8 @@ class _GarageServiceRecordFormPageState
                           flex: 2,
                           child: TextField(
                             controller: _items[i].priceController,
-                            keyboardType: const TextInputType.numberWithOptions(
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
                             style: const TextStyle(fontSize: 13),
@@ -513,8 +540,11 @@ class _GarageServiceRecordFormPageState
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.remove_circle_outline,
-                              color: Colors.redAccent, size: 20),
+                          icon: const Icon(
+                            Icons.remove_circle_outline,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
                           onPressed: () => _removeItem(i),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
@@ -527,7 +557,10 @@ class _GarageServiceRecordFormPageState
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(8),
@@ -537,7 +570,8 @@ class _GarageServiceRecordFormPageState
                     children: [
                       const Text(
                         'Итого',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        style:
+                            TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       Text(
                         '${_computeTotal().toStringAsFixed(2)} $_selectedCurrency',
@@ -597,8 +631,7 @@ class _GarageServiceRecordFormPageState
                     ),
                     ..._newFiles.map(
                       (f) => _AttachmentThumb(
-                        onDelete: () =>
-                            setState(() => _newFiles.remove(f)),
+                        onDelete: () => setState(() => _newFiles.remove(f)),
                         child: Image.file(
                           File(f.path),
                           width: 72,

@@ -193,7 +193,6 @@ class GarageApi {
         id: fallbackId,
         userCarId: 0,
         serviceDate: '',
-        serviceType: '',
         items: [],
         attachments: [],
       );

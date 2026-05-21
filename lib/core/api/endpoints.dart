@@ -65,6 +65,10 @@ class Endpoints {
   static const garageServiceRecordMediaDelete =
       '/garage/service-records/{id}/media/{mediaId}';
 
+  // expense categories
+  static const expenseCategories = '/garage/expense-categories';
+  static const expenseCategory = '/garage/expense-categories/{id}';
+
   // subscription
   static const subscriptionPlans = '/subscription/plans';
   static const subscriptionStatus = '/subscription/status';

@@ -120,7 +120,7 @@ class _GarageServiceRecordPageState extends State<GarageServiceRecordPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: MainAppBar(
-        title: _record?.serviceType ?? 'Запись',
+        title: _record?.displayName ?? 'Запись',
         actions: [
           if (!_isLoading && _record != null)
             IconButton(
@@ -163,7 +163,8 @@ class _GarageServiceRecordPageState extends State<GarageServiceRecordPage> {
             children: [
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _load, child: const Text('Повторить')),
+              ElevatedButton(
+                  onPressed: _load, child: const Text('Повторить')),
             ],
           ),
         ),
@@ -171,16 +172,42 @@ class _GarageServiceRecordPageState extends State<GarageServiceRecordPage> {
     }
 
     final record = _record!;
+    final cat = record.category;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Основная инфо
+          // Категория + основная инфо
           _Section(
             children: [
-              _Row(label: 'Тип обслуживания', value: record.serviceType),
+              if (cat != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: cat.color.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(cat.icon, color: cat.color, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        cat.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: cat.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _Row(label: 'Дата', value: record.serviceDate),
               if (record.mileage != null)
                 _Row(label: 'Пробег', value: '${record.mileage} км'),
@@ -211,9 +238,7 @@ class _GarageServiceRecordPageState extends State<GarageServiceRecordPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(item.name),
-                          ),
+                          Expanded(child: Text(item.name)),
                           Text(
                             '${item.quantity} × ${item.unitPrice.toStringAsFixed(2)}',
                             style: const TextStyle(color: Colors.black54),
@@ -253,17 +278,18 @@ class _GarageServiceRecordPageState extends State<GarageServiceRecordPage> {
     showDialog(
       context: context,
       barrierColor: Colors.black87,
-      builder: (_) => _FullscreenGallery(images: images, initialIndex: initialIndex),
+      builder: (_) =>
+          _FullscreenGallery(images: images, initialIndex: initialIndex),
     );
   }
-
 }
 
 class _FullscreenGallery extends StatefulWidget {
   final List<String> images;
   final int initialIndex;
 
-  const _FullscreenGallery({required this.images, required this.initialIndex});
+  const _FullscreenGallery(
+      {required this.images, required this.initialIndex});
 
   @override
   State<_FullscreenGallery> createState() => _FullscreenGalleryState();
@@ -309,7 +335,8 @@ class _FullscreenGalleryState extends State<_FullscreenGallery> {
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
                 errorWidget: (_, __, ___) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white, size: 48),
+                  child: Icon(Icons.broken_image,
+                      color: Colors.white, size: 48),
                 ),
               ),
             ),
@@ -343,7 +370,9 @@ class _FullscreenGalleryState extends State<_FullscreenGallery> {
                     width: _currentIndex == i ? 10 : 6,
                     height: _currentIndex == i ? 10 : 6,
                     decoration: BoxDecoration(
-                      color: _currentIndex == i ? Colors.white : Colors.white54,
+                      color: _currentIndex == i
+                          ? Colors.white
+                          : Colors.white54,
                       shape: BoxShape.circle,
                     ),
                   );
@@ -399,7 +428,8 @@ class _Row extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],

@@ -1,7 +1,9 @@
 import '../../../../core/utils/parsers.dart';
 import '../../domain/entities/attachment.dart';
+import '../../domain/entities/expense_category.dart';
 import '../../domain/entities/service_item.dart';
 import '../../domain/entities/service_record.dart';
+import 'expense_category_model.dart';
 
 class ServiceItemModel extends ServiceItem {
   const ServiceItemModel({
@@ -47,7 +49,8 @@ class ServiceRecordModel extends ServiceRecord {
     required super.userCarId,
     required super.serviceDate,
     super.mileage,
-    required super.serviceType,
+    super.categoryId,
+    super.category,
     super.notes,
     super.totalCost,
     super.currency,
@@ -59,12 +62,19 @@ class ServiceRecordModel extends ServiceRecord {
     final itemsRaw = json['items'] as List<dynamic>? ?? [];
     final attachmentsRaw = json['attachments'] as List<dynamic>? ?? [];
 
+    ExpenseCategory? category;
+    final categoryRaw = json['category'];
+    if (categoryRaw is Map<String, dynamic>) {
+      category = ExpenseCategoryModel.fromJson(categoryRaw);
+    }
+
     return ServiceRecordModel(
       id: toIntSafe(json['id']) ?? 0,
       userCarId: toIntSafe(json['user_car_id']) ?? 0,
       serviceDate: json['service_date']?.toString() ?? '',
       mileage: toIntSafe(json['mileage']),
-      serviceType: json['service_type']?.toString() ?? '',
+      categoryId: toIntSafe(json['category_id']),
+      category: category,
       notes: json['notes']?.toString(),
       totalCost: toDoubleSafe(json['total_cost']),
       currency: json['currency']?.toString(),

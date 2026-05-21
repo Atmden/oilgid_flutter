@@ -38,6 +38,7 @@ dependencies:
   url_launcher: ^6.3.2
   uuid: ^4.5.2
   yandex_mapkit: ^4.2.1
+  flutter_colorpicker: ^1.1.0
 
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1

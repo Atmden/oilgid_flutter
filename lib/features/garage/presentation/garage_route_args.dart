@@ -1,6 +1,18 @@
 import '../domain/entities/service_record.dart';
 import '../domain/entities/user_car.dart';
 
+class GarageCarStatsArgs {
+  final int carId;
+  final String carDisplayName;
+  final List<ServiceRecord> records;
+
+  const GarageCarStatsArgs({
+    required this.carId,
+    required this.carDisplayName,
+    required this.records,
+  });
+}
+
 class GarageCarPageArgs {
   final int carId;
   final UserCar? car;

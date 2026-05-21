@@ -31,9 +31,7 @@ class _GarageCarPageState extends State<GarageCarPage> {
     if (_initialized) return;
     _initialized = true;
     final args = ModalRoute.of(context)?.settings.arguments;
-    _args = args is GarageCarPageArgs
-        ? args
-        : GarageCarPageArgs(carId: 0);
+    _args = args is GarageCarPageArgs ? args : GarageCarPageArgs(carId: 0);
     _car = _args.car;
     _load();
   }
@@ -92,6 +90,18 @@ class _GarageCarPageState extends State<GarageCarPage> {
     ).then((_) => _load());
   }
 
+  void _openStats() {
+    Navigator.pushNamed(
+      context,
+      '/garage/car/stats',
+      arguments: GarageCarStatsArgs(
+        carId: _args.carId,
+        carDisplayName: _car?.displayName ?? 'Автомобиль',
+        records: List.unmodifiable(_records),
+      ),
+    );
+  }
+
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -146,6 +156,12 @@ class _GarageCarPageState extends State<GarageCarPage> {
       appBar: MainAppBar(
         title: _car?.displayName ?? 'Автомобиль',
         actions: [
+          if (!_isLoading && _records.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.bar_chart_outlined),
+              tooltip: 'Статистика',
+              onPressed: _openStats,
+            ),
           if (!_isLoading && _car != null)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
@@ -196,7 +212,8 @@ class _GarageCarPageState extends State<GarageCarPage> {
             children: [
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _load, child: const Text('Повторить')),
+              ElevatedButton(
+                  onPressed: _load, child: const Text('Повторить')),
             ],
           ),
         ),
@@ -209,18 +226,22 @@ class _GarageCarPageState extends State<GarageCarPage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
         children: [
-          // Карточка авто
           _InfoCard(
             children: [
-              _InfoRow(label: 'Марка / Модель', value: '${car.brand} ${car.model}'),
-              if (car.year != null) _InfoRow(label: 'Год', value: '${car.year}'),
+              _InfoRow(
+                  label: 'Марка / Модель',
+                  value: '${car.brand} ${car.model}'),
+              if (car.year != null)
+                _InfoRow(label: 'Год', value: '${car.year}'),
               if (car.modification != null) ...[
                 _InfoRow(
                   label: 'Модификация',
                   value: car.modification!.name,
                 ),
                 if (car.modification!.generation != null)
-                  _InfoRow(label: 'Поколение', value: car.modification!.generation!),
+                  _InfoRow(
+                      label: 'Поколение',
+                      value: car.modification!.generation!),
               ],
               if (car.vin != null && car.vin!.isNotEmpty)
                 _InfoRow(label: 'VIN', value: car.vin!),
@@ -236,7 +257,7 @@ class _GarageCarPageState extends State<GarageCarPage> {
           Row(
             children: [
               const Text(
-                'Сервисная книга',
+                'Записи',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
@@ -317,7 +338,8 @@ class _InfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -333,6 +355,10 @@ class _RecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cat = record.category;
+    final iconColor = cat?.color ?? AppColors.primarySoft;
+    final icon = cat?.icon ?? Icons.receipt_outlined;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -345,14 +371,22 @@ class _RecordCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.build_outlined, color: AppColors.primarySoft),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    record.serviceType,
+                    record.displayName,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
@@ -360,32 +394,25 @@ class _RecordCard extends StatelessWidget {
                     children: [
                       Text(
                         record.serviceDate,
-                        style: const TextStyle(fontSize: 13, color: Colors.black45),
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black45),
                       ),
                       if (record.mileage != null) ...[
-                        const Text(
-                          '  ·  ',
-                          style: TextStyle(color: Colors.black26),
-                        ),
+                        const Text('  ·  ',
+                            style: TextStyle(color: Colors.black26)),
                         Text(
                           '${record.mileage} км',
                           style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black45,
-                          ),
+                              fontSize: 13, color: Colors.black45),
                         ),
                       ],
                       if (record.totalCost != null) ...[
-                        const Text(
-                          '  ·  ',
-                          style: TextStyle(color: Colors.black26),
-                        ),
+                        const Text('  ·  ',
+                            style: TextStyle(color: Colors.black26)),
                         Text(
                           '${record.totalCost!.toStringAsFixed(0)} ${record.currency ?? ''}',
                           style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
+                              fontSize: 13, color: Colors.black54),
                         ),
                       ],
                     ],

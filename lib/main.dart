@@ -32,6 +32,8 @@ import 'package:oil_gid/pages/add_car_request_page.dart';
 import 'package:oil_gid/pages/garage_car_form_page.dart';
 import 'package:oil_gid/pages/garage_car_page.dart';
 import 'package:oil_gid/pages/garage_page.dart';
+import 'package:oil_gid/pages/expense_categories_page.dart';
+import 'package:oil_gid/pages/garage_car_stats_page.dart';
 import 'package:oil_gid/pages/garage_service_record_form_page.dart';
 import 'package:oil_gid/pages/garage_service_record_page.dart';
 import 'package:oil_gid/pages/paywall_page.dart';
@@ -396,6 +398,9 @@ class _MyAppState extends State<MyApp> {
             const GarageServiceRecordPage(),
         '/garage/service-record/form': (context) =>
             const GarageServiceRecordFormPage(),
+        '/garage/car/stats': (context) => const GarageCarStatsPage(),
+        '/garage/expense-categories': (context) =>
+            const ExpenseCategoriesPage(),
         '/paywall': (context) => const PaywallPage(),
       },
     );

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"d:\\\\oilgid\\\\oilgid_flutter\\\\lib\" -Recurse | Sort-Object FullName | Select-Object @{Name=\"Path\"; Expression={$_.FullName.Replace\\(\"d:\\\\oilgid\\\\oilgid_flutter\\\\\", \"\"\\)}} | Format-Table -HideTableHeaders)",
+      "Bash(Find-ChildItem -Path \"d:\\\\oilgid\\\\oilgid_flutter\\\\lib\" -Name \"*.dart\")",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object Count)"
+    ]
+  }
+}

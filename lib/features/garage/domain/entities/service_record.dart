@@ -1,4 +1,5 @@
 import 'attachment.dart';
+import 'expense_category.dart';
 import 'service_item.dart';
 
 class ServiceRecord {
@@ -6,7 +7,8 @@ class ServiceRecord {
   final int userCarId;
   final String serviceDate;
   final int? mileage;
-  final String serviceType;
+  final int? categoryId;
+  final ExpenseCategory? category;
   final String? notes;
   final double? totalCost;
   final String? currency;
@@ -18,11 +20,14 @@ class ServiceRecord {
     required this.userCarId,
     required this.serviceDate,
     this.mileage,
-    required this.serviceType,
+    this.categoryId,
+    this.category,
     this.notes,
     this.totalCost,
     this.currency,
     required this.items,
     required this.attachments,
   });
+
+  String get displayName => category?.name ?? notes ?? 'Запись';
 }
