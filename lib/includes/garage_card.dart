@@ -11,10 +11,10 @@ class GarageCard extends StatefulWidget {
 
 class _GarageCardState extends State<GarageCard> with TickerProviderStateMixin {
   late final AnimationController _gradCtrl;
-  late final AnimationController _shineCtrl;
+  late final AnimationController _shimmerCtrl;
   late final AnimationController _sparkleCtrl;
   late final Animation<double> _gradAnim;
-  late final Animation<double> _shineAnim;
+  late final Animation<double> _shimmerAnim;
 
   @override
   void initState() {
@@ -22,37 +22,43 @@ class _GarageCardState extends State<GarageCard> with TickerProviderStateMixin {
 
     _gradCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
     _gradAnim = CurvedAnimation(parent: _gradCtrl, curve: Curves.easeInOut);
 
-    _shineCtrl = AnimationController(
+    // Shimmer идёт независимо от градиента, чуть медленнее
+    _shimmerCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 2500),
     );
-    _shineAnim = CurvedAnimation(parent: _shineCtrl, curve: Curves.easeInOut);
+    _shimmerAnim = CurvedAnimation(
+      parent: _shimmerCtrl,
+      curve: Curves.easeInOut,
+    );
+    _shimmerLoop();
 
     _sparkleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
-
-    _shineLoop();
   }
 
-  Future<void> _shineLoop() async {
+  Future<void> _shimmerLoop() async {
     while (mounted) {
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 8));
       if (!mounted) break;
-      await _shineCtrl.forward();
-      _shineCtrl.reset();
+      await _shimmerCtrl.forward();
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) break;
+      await _shimmerCtrl.reverse();
+      _shimmerCtrl.reset();
     }
   }
 
   @override
   void dispose() {
     _gradCtrl.dispose();
-    _shineCtrl.dispose();
+    _shimmerCtrl.dispose();
     _sparkleCtrl.dispose();
     super.dispose();
   }
@@ -60,20 +66,39 @@ class _GarageCardState extends State<GarageCard> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_gradAnim, _shineAnim, _sparkleCtrl]),
+      animation: Listenable.merge([_gradAnim, _shimmerAnim, _sparkleCtrl]),
       builder: (context, child) {
         final t = _gradAnim.value;
-        final s = _shineAnim.value;
+        final sh = _shimmerAnim.value;
         final sp = _sparkleCtrl.value;
+
+        // Центр яркого пятна shimmer движется по вертикали
+        final shCenter = sh.clamp(0.01, 0.99);
+        final shStart = (shCenter - 0.22).clamp(0.0, 1.0);
+        final shEnd = (shCenter + 0.22).clamp(0.0, 1.0);
+        // Цвет в пике: белый → голубой → белый
+        final shColor = Color.lerp(
+          Colors.white,
+          const Color(0xFFAAD4FF),
+          sin(sh * pi).clamp(0.0, 1.0),
+        )!.withValues(alpha: (0.32 * sin(sh * pi)).clamp(0.0, 1.0));
 
         return Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
               colors: [
-                Color.lerp(const Color(0xFF3D6494), const Color(0xFF1A3A6C), t)!,
+                Color.lerp(
+                  const Color(0xFF3D6494),
+                  const Color(0xFF1A3A6C),
+                  t,
+                )!,
                 const Color(0xFF0D1B2A),
-                Color.lerp(const Color(0xFF2A558A), const Color(0xFF0F2240), t)!,
+                Color.lerp(
+                  const Color(0xFF2A558A),
+                  const Color(0xFF0F2240),
+                  t,
+                )!,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -108,46 +133,83 @@ class _GarageCardState extends State<GarageCard> with TickerProviderStateMixin {
                   gradient: LinearGradient(
                     colors: [
                       Color.lerp(
-                          const Color(0xFF0E1E30), const Color(0xFF162B44), t)!,
+                        const Color(0xFF0E1E30),
+                        const Color(0xFF162B44),
+                        t,
+                      )!,
                       Color.lerp(
-                          const Color(0xFF1A2635), const Color(0xFF1A3050), t)!,
+                        const Color(0xFF1A2635),
+                        const Color(0xFF1A3050),
+                        t,
+                      )!,
                     ],
                     begin: Alignment.lerp(
-                        Alignment.topLeft, Alignment.topRight, t * 0.15)!,
-                    end: Alignment.lerp(Alignment.bottomRight,
-                        Alignment.bottomLeft, t * 0.15)!,
+                      Alignment.topLeft,
+                      Alignment.topRight,
+                      t * 0.15,
+                    )!,
+                    end: Alignment.lerp(
+                      Alignment.bottomRight,
+                      Alignment.bottomLeft,
+                      t * 0.15,
+                    )!,
                   ),
                   borderRadius: BorderRadius.circular(14.5),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14.5),
                   child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       child!,
-                      // Twinkling sparkles
-                      _sparkle(right: 58, top: 14,
-                          size: 3, opacity: 0.2 + 0.45 * sp),
-                      _sparkle(right: 43, top: 23,
-                          size: 2, opacity: 0.15 + 0.35 * (1 - sp)),
-                      _sparkle(right: 64, top: 28,
-                          size: 2, opacity: 0.1 + 0.4 * sin(sp * pi)),
-                      // Double shine sweep
-                      if (s > 0)
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final w = constraints.maxWidth;
-                                final dx = s * (w + 140) - 70;
-                                return Stack(children: [
-                                  _shineStrip(dx, 40, 0.22),
-                                  _shineStrip(dx + 22, 18, 0.11),
-                                ]);
-                              },
+                      // Косой shimmer на всю ширину
+                      Positioned(
+                        left: -60,
+                        right: -60,
+                        top: -60,
+                        bottom: -60,
+                        child: IgnorePointer(
+                          child: Transform.rotate(
+                            angle: pi / 12,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.transparent,
+                                    shColor,
+                                    Colors.transparent,
+                                    Colors.transparent,
+                                  ],
+                                  stops: [0.0, shStart, shCenter, shEnd, 1.0],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      // Accent bottom glow strip
+                      ),
+                      // Мерцающие искры
+                      _sparkle(
+                        right: 58,
+                        top: 14,
+                        size: 3,
+                        opacity: 0.2 + 0.45 * sp,
+                      ),
+                      _sparkle(
+                        right: 43,
+                        top: 23,
+                        size: 2,
+                        opacity: 0.15 + 0.35 * (1 - sp),
+                      ),
+                      _sparkle(
+                        right: 64,
+                        top: 28,
+                        size: 2,
+                        opacity: 0.1 + 0.4 * sin(sp * pi),
+                      ),
+                      // Зелёная accent-полоска снизу
                       Positioned(
                         left: 0,
                         right: 0,
@@ -159,12 +221,15 @@ class _GarageCardState extends State<GarageCard> with TickerProviderStateMixin {
                               gradient: LinearGradient(
                                 colors: [
                                   Colors.transparent,
-                                  AppColors.accent
-                                      .withValues(alpha: 0.3 + 0.35 * t),
-                                  AppColors.accent
-                                      .withValues(alpha: 0.55 + 0.3 * t),
-                                  AppColors.accent
-                                      .withValues(alpha: 0.3 + 0.35 * t),
+                                  AppColors.accent.withValues(
+                                    alpha: 0.3 + 0.35 * t,
+                                  ),
+                                  AppColors.accent.withValues(
+                                    alpha: 0.55 + 0.3 * t,
+                                  ),
+                                  AppColors.accent.withValues(
+                                    alpha: 0.3 + 0.35 * t,
+                                  ),
                                   Colors.transparent,
                                 ],
                               ),
@@ -212,33 +277,10 @@ class _GarageCardState extends State<GarageCard> with TickerProviderStateMixin {
     );
   }
 
-  Widget _shineStrip(double left, double width, double alpha) {
-    return Positioned(
-      left: left,
-      top: -20,
-      bottom: -20,
-      width: width,
-      child: Transform.rotate(
-        angle: pi / 8,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.transparent,
-                Colors.white.withValues(alpha: alpha),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildStaticContent() {
     return Stack(
       children: [
-        // Ghost car silhouette watermark
+        // Ghost car silhouette
         Positioned.fill(
           child: Align(
             alignment: const Alignment(1.15, 0.15),
