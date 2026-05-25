@@ -31,6 +31,7 @@ class Endpoints {
   static const oilsByModification = '/oils/by-modification/{modification_id}';
   static const oilsCatalog = '/oils/catalog';
   static const oilsCatalogFacets = '/oils/catalog/facets';
+  static const oilsCatalogFacetsV2 = '/v2/oils/catalog/facets';
   static const oilsCatalogFiltersBrands = '/oils/catalog/filters/brands';
   static const oilsCatalogFiltersViscosities =
       '/oils/catalog/filters/viscosities';

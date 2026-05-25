@@ -22,7 +22,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     (label: 'Сначала новые', value: '-id'),
   ];
   static const int _facetDebounceMs = 400;
-  static const int _defaultFacetLimit = 50;
+  static const int _defaultFacetLimit = 20;
   static const int _expandAnimationMs = 240;
   static const Map<String, String> _facetTitleMap = {
     'brand': 'Бренд',
@@ -41,7 +41,14 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
 
   late CatalogFilterState _state;
   final ScrollController _listScrollController = ScrollController();
-  Map<String, List<CatalogFacetOption>> _facetItems = const {};
+
+  // Накопленные элементы фасетов (страницы суммируются).
+  Map<String, List<CatalogFacetOption>> _facetAllItems = {};
+  // Метаданные пагинации по каждому фасету.
+  Map<String, CatalogFacetMeta> _facetMeta = {};
+  // Текущая загруженная страница по каждому фасету (default 1).
+  final Map<String, int> _facetCurrentPages = {};
+
   Map<String, String> _facetSearch = {};
   final Map<String, bool> _facetLoading = {};
   final Map<String, String?> _facetError = {};
@@ -76,8 +83,10 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   Future<void> _loadFacets({
     String? localFacetKey,
     bool showGlobalLoading = false,
+    bool isLoadMore = false,
   }) async {
     final requestId = ++_lastRequestId;
+
     if (showGlobalLoading) {
       setState(() {
         _loading = true;
@@ -90,41 +99,90 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
       });
     }
 
+    // При load-more передаём только страницу нужного фасета.
+    final facetPageForRequest =
+        isLoadMore && localFacetKey != null
+            ? {localFacetKey: _facetCurrentPages[localFacetKey] ?? 1}
+            : null;
+
     try {
       final result = await AppApi().oilApi.getCatalogFacets(
         selectedFacetIds: _state.selectedFacetIds,
         facetSearch: _normalizedFacetSearch,
         facetLimit: _facetLimitMap,
+        facetPage: facetPageForRequest,
         sort: _state.sort,
         search: _state.search,
       );
       if (!mounted || requestId != _lastRequestId) return;
 
       setState(() {
-        _facetItems = result.facets;
         _totalMatched = result.totalMatched;
         _loading = false;
         _error = null;
-        for (final key in _facetLoading.keys) {
+        for (final key in _facetLoading.keys.toList()) {
           _facetLoading[key] = false;
         }
         if (localFacetKey != null) {
           _facetError.remove(localFacetKey);
         }
+
+        if (isLoadMore && localFacetKey != null) {
+          // Добавляем новые элементы, дедуплицируем по id
+          // (сервер принудительно включает selected-элементы на каждой странице).
+          final existing = _facetAllItems[localFacetKey] ?? [];
+          final newItems = result.facets[localFacetKey] ?? [];
+          final existingIds = existing.map((e) => e.id).toSet();
+          final deduped =
+              newItems.where((item) => !existingIds.contains(item.id)).toList();
+
+          _facetAllItems = {
+            ..._facetAllItems,
+            localFacetKey: [...existing, ...deduped],
+          };
+
+          if (result.facetsMeta.containsKey(localFacetKey)) {
+            _facetMeta = {
+              ..._facetMeta,
+              localFacetKey: result.facetsMeta[localFacetKey]!,
+            };
+          }
+        } else {
+          // Полная перезагрузка: заменяем всё и сбрасываем страницы.
+          _facetAllItems = {
+            for (final e in result.facets.entries)
+              e.key: List<CatalogFacetOption>.from(e.value),
+          };
+          _facetMeta = Map<String, CatalogFacetMeta>.from(result.facetsMeta);
+          _facetCurrentPages.clear();
+        }
       });
     } catch (e) {
       if (!mounted || requestId != _lastRequestId) return;
       setState(() {
-        if (_facetItems.isEmpty || showGlobalLoading || localFacetKey == null) {
+        _loading = false;
+        if (_facetAllItems.isEmpty || showGlobalLoading) {
           _error = e.toString();
-          _loading = false;
         }
         if (localFacetKey != null) {
           _facetLoading[localFacetKey] = false;
           _facetError[localFacetKey] = e.toString();
+          if (isLoadMore) {
+            // Откатываем страницу при ошибке.
+            final current = _facetCurrentPages[localFacetKey] ?? 1;
+            if (current > 1) _facetCurrentPages[localFacetKey] = current - 1;
+          }
         }
       });
     }
+  }
+
+  void _loadMoreFacetOptions(String facetKey) {
+    final nextPage = (_facetCurrentPages[facetKey] ?? 1) + 1;
+    setState(() {
+      _facetCurrentPages[facetKey] = nextPage;
+    });
+    _loadFacets(localFacetKey: facetKey, isLoadMore: true);
   }
 
   Map<String, String> get _normalizedFacetSearch {
@@ -141,7 +199,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   Map<String, int> get _facetLimitMap {
     final keys = <String>{
       ...OilApi.defaultFacetKeys,
-      ..._facetItems.keys,
+      ..._facetAllItems.keys,
       ..._facetSearch.keys,
       ..._state.selectedFacetIds.keys,
     };
@@ -176,7 +234,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   }
 
   List<CatalogFacetOption> _group(String key) {
-    return _facetItems[key] ?? const [];
+    return _facetAllItems[key] ?? const [];
   }
 
   TextEditingController _controllerForFacet(String facetKey) {
@@ -227,7 +285,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
 
   List<String> _orderedFacetKeys() {
     final keys = <String>{
-      ..._facetItems.keys,
+      ..._facetAllItems.keys,
       ..._state.selectedFacetIds.keys,
       ..._facetSearch.keys,
     };
@@ -246,9 +304,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
 
   String _facetTitle(String facetKey) {
     final knownTitle = _facetTitleMap[facetKey];
-    if (knownTitle != null) {
-      return knownTitle;
-    }
+    if (knownTitle != null) return knownTitle;
     return facetKey
         .split('_')
         .map((chunk) {
@@ -309,10 +365,10 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   }
 
   Widget _buildContent() {
-    if (_loading && _facetItems.isEmpty) {
+    if (_loading && _facetAllItems.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null && _facetItems.isEmpty) {
+    if (_error != null && _facetAllItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -349,7 +405,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
             const SizedBox(height: 80),
           ],
         ),
-        if (_loading && _facetItems.isNotEmpty)
+        if (_loading && _facetAllItems.isNotEmpty)
           const Positioned(
             top: 8,
             right: 8,
@@ -407,6 +463,8 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     final hasLocalError = _facetError[facetKey] != null;
     final isLoading = _facetLoading[facetKey] == true;
     final selectedSet = selected.toSet();
+    final meta = _facetMeta[facetKey];
+    final canLoadMore = meta != null && meta.hasMore && !isLoading;
 
     return Card(
       key: _sectionKeyForFacet(facetKey),
@@ -417,9 +475,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
         title: Text('${_facetTitle(facetKey)} (${selected.length})'),
         childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         onExpansionChanged: (expanded) {
-          if (expanded) {
-            _scrollFacetHeaderToTop(facetKey);
-          }
+          if (expanded) _scrollFacetHeaderToTop(facetKey);
         },
         children: [
           TextField(
@@ -428,10 +484,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
               hintText: 'Поиск',
               isDense: true,
               prefixIcon: Icon(Icons.search),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(10)),
               ),
@@ -468,19 +521,39 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
             )
           else
             Column(
-              children: options
-                  .map(
-                    (opt) => CheckboxListTile(
-                      value: selectedSet.contains(opt.id),
-                      onChanged: (_) => _toggleFacetOption(facetKey, opt.id),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(opt.title),
-                      secondary: Text('${opt.count}'),
-                      controlAffinity: ListTileControlAffinity.leading,
+              children: [
+                ...options.map(
+                  (opt) => CheckboxListTile(
+                    value: selectedSet.contains(opt.id),
+                    onChanged: (_) => _toggleFacetOption(facetKey, opt.id),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(opt.title),
+                    secondary: Text('${opt.count}'),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                if (meta != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Показано ${options.length} из ${meta.total}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (canLoadMore)
+                          TextButton(
+                            onPressed: () => _loadMoreFacetOptions(facetKey),
+                            child: const Text('Загрузить ещё'),
+                          ),
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+              ],
             ),
         ],
       ),

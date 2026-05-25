@@ -99,11 +99,41 @@ class CatalogFacetOption extends CatalogFilterOption {
   }
 }
 
+class CatalogFacetMeta {
+  final int currentPage;
+  final int lastPage;
+  final int perPage;
+  final int total;
+
+  const CatalogFacetMeta({
+    required this.currentPage,
+    required this.lastPage,
+    required this.perPage,
+    required this.total,
+  });
+
+  bool get hasMore => currentPage < lastPage;
+
+  static CatalogFacetMeta fromJson(Map<String, dynamic> json) {
+    return CatalogFacetMeta(
+      currentPage: json['current_page'] is int ? json['current_page'] as int : 1,
+      lastPage: json['last_page'] is int ? json['last_page'] as int : 1,
+      perPage: json['per_page'] is int ? json['per_page'] as int : 20,
+      total: json['total'] is int ? json['total'] as int : 0,
+    );
+  }
+}
+
 class CatalogFacetsResult {
   final Map<String, List<CatalogFacetOption>> facets;
+  final Map<String, CatalogFacetMeta> facetsMeta;
   final int totalMatched;
 
-  const CatalogFacetsResult({required this.facets, required this.totalMatched});
+  const CatalogFacetsResult({
+    required this.facets,
+    required this.facetsMeta,
+    required this.totalMatched,
+  });
 }
 
 class OilApi {
@@ -199,9 +229,9 @@ class OilApi {
     Map<String, List<int>>? selectedFacetIds,
     Map<String, String>? facetSearch,
     Map<String, int>? facetLimit,
-    int defaultFacetLimit = 50,
+    Map<String, int>? facetPage,
+    int defaultFacetLimit = 20,
     String? sort,
-    int? page,
     String? search,
   }) async {
     final queryParams = <String, dynamic>{};
@@ -214,17 +244,18 @@ class OilApi {
       facetSearch: facetSearch,
       defaultFacetLimit: defaultFacetLimit,
     );
+    _appendFacetPage(queryParams, facetPage: facetPage);
     if (sort != null && sort.isNotEmpty) queryParams['sort'] = sort;
-    if (page != null && page > 0) queryParams['page'] = page;
 
     final response = await dio.get(
-      Endpoints.oilsCatalogFacets,
+      Endpoints.oilsCatalogFacetsV2,
       queryParameters: queryParams,
     );
 
     final data = response.data;
     final root = data is Map ? data['data'] : null;
     final facetsRaw = root is Map ? root['facets'] : null;
+    final facetsMetaRaw = root is Map ? root['facets_meta'] : null;
     final totalMatchedRaw = root is Map ? root['totalMatched'] : null;
 
     final facets = <String, List<CatalogFacetOption>>{};
@@ -236,8 +267,21 @@ class OilApi {
       });
     }
 
+    final facetsMeta = <String, CatalogFacetMeta>{};
+    if (facetsMetaRaw is Map) {
+      facetsMetaRaw.forEach((key, value) {
+        if (key is String && value is Map<String, dynamic>) {
+          facetsMeta[key] = CatalogFacetMeta.fromJson(value);
+        }
+      });
+    }
+
     final totalMatched = totalMatchedRaw is int ? totalMatchedRaw : 0;
-    return CatalogFacetsResult(facets: facets, totalMatched: totalMatched);
+    return CatalogFacetsResult(
+      facets: facets,
+      facetsMeta: facetsMeta,
+      totalMatched: totalMatched,
+    );
   }
 
   void _appendSelectedFacetIds(
@@ -287,6 +331,16 @@ class OilApi {
     normalized.forEach((facetKey, limit) {
       if (limit <= 0) return;
       queryParams['facet_limit[$facetKey]'] = limit;
+    });
+  }
+
+  void _appendFacetPage(
+    Map<String, dynamic> queryParams, {
+    required Map<String, int>? facetPage,
+  }) {
+    if (facetPage == null || facetPage.isEmpty) return;
+    facetPage.forEach((facetKey, page) {
+      if (page > 1) queryParams['facet_page[$facetKey]'] = page;
     });
   }
 
