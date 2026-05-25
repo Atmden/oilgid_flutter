@@ -4,7 +4,19 @@
       "PowerShell(Get-ChildItem -Path \"d:\\\\oilgid\\\\oilgid_flutter\\\\lib\" -Recurse | Sort-Object FullName | Select-Object @{Name=\"Path\"; Expression={$_.FullName.Replace\\(\"d:\\\\oilgid\\\\oilgid_flutter\\\\\", \"\"\\)}} | Format-Table -HideTableHeaders)",
       "Bash(Find-ChildItem -Path \"d:\\\\oilgid\\\\oilgid_flutter\\\\lib\" -Name \"*.dart\")",
       "Bash(Measure-Object)",
-      "Bash(Select-Object Count)"
+      "Bash(Select-Object Count)",
+      "Bash(ls ~/Library/Logs/DiagnosticReports/ | grep -i oil | tail -20)",
+      "Read(//Users/mgggai/Library/Logs/DiagnosticReports/**)",
+      "Bash(xcrun devicectl *)",
+      "Bash(mkdir -p /tmp/ios_crashes && xcrun devicectl device copy from --device 9201396C-258E-5258-B36F-4135D5BFA99A --source \"/var/mobile/Library/Logs/CrashReporter/\" --destination /tmp/ios_crashes/ --domain-type absolute 2>&1 | head -30)",
+      "Bash(xargs ls -lt)",
+      "Bash(cat /Users/mgggai/oilgid_flutter/ios/.symlinks/plugins/flutter_native_splash/ios/Classes/FlutterNativeSplashPlugin.m 2>/dev/null || find /Users/mgggai/oilgid_flutter/ios -path \"*/flutter_native_splash*\" -name \"*.m\" -o -path \"*/flutter_native_splash*\" -name \"*.swift\" 2>/dev/null | head -5)",
+      "Read(//Users/mgggai/oilgid_flutter/ios/.symlinks/plugins/flutter_native_splash/ios/Classes/**)",
+      "Bash(find ~/.pub-cache -path \"*flutter_native_splash*\" -name \"*.m\" 2>/dev/null | head -5)",
+      "Read(//Users/mgggai/.pub-cache/**)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
     ]
   }
 }
