@@ -50,7 +50,9 @@ Future<void> main() async {
     ),
   );
 
-  await Future.any([
+  var appStarted = false;
+
+  unawaited(
     SentryFlutter.init(
       (options) {
         options.dsn =
@@ -58,13 +60,19 @@ Future<void> main() async {
         options.tracesSampleRate = 1.0;
         options.profilesSampleRate = 1.0;
       },
-      appRunner: () =>
-          runApp(SentryWidget(child: ProviderScope(child: AppBootstrap()))),
+      appRunner: () {
+        if (appStarted) return;
+        appStarted = true;
+        runApp(SentryWidget(child: ProviderScope(child: AppBootstrap())));
+      },
     ),
-    Future.delayed(const Duration(seconds: 5), () {
-      runApp(ProviderScope(child: AppBootstrap()));
-    }),
-  ]);
+  );
+
+  await Future.delayed(const Duration(seconds: 5));
+  if (!appStarted) {
+    appStarted = true;
+    runApp(ProviderScope(child: AppBootstrap()));
+  }
 }
 
 class AppBootstrap extends StatefulWidget {
