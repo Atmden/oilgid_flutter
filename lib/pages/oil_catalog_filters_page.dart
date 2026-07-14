@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:oil_gid/core/api/app_api.dart';
@@ -51,6 +52,10 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
 
   Map<String, String> _facetSearch = {};
   final Map<String, bool> _facetLoading = {};
+  // 'loadMore' — догрузка страницы, 'select' — обновление после выбора опции.
+  final Map<String, String?> _facetLoadingReason = {};
+  // id опции, выбор которой сейчас обрабатывается (для точечного спиннера).
+  final Map<String, int?> _facetPendingOptionId = {};
   final Map<String, String?> _facetError = {};
   final Map<String, TextEditingController> _facetControllers = {};
   final Map<String, GlobalKey> _facetSectionKeys = {};
@@ -95,6 +100,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     } else if (localFacetKey != null) {
       setState(() {
         _facetLoading[localFacetKey] = true;
+        _facetLoadingReason[localFacetKey] = isLoadMore ? 'loadMore' : 'select';
         _facetError.remove(localFacetKey);
       });
     }
@@ -109,7 +115,10 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
       final result = await AppApi().oilApi.getCatalogFacets(
         selectedFacetIds: _state.selectedFacetIds,
         facetSearch: _normalizedFacetSearch,
-        facetLimit: _facetLimitMap,
+        // При полной перезагрузке (не load-more) запрашиваем для каждого
+        // фасета столько элементов, сколько уже подгружено, иначе ответ
+        // урежет ранее дозагруженные страницы до дефолтного лимита.
+        facetLimit: _facetLimitMap(preserveLoadedPages: !isLoadMore),
         facetPage: facetPageForRequest,
         sort: _state.sort,
         search: _state.search,
@@ -122,6 +131,8 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
         _error = null;
         for (final key in _facetLoading.keys.toList()) {
           _facetLoading[key] = false;
+          _facetLoadingReason[key] = null;
+          _facetPendingOptionId[key] = null;
         }
         if (localFacetKey != null) {
           _facetError.remove(localFacetKey);
@@ -166,6 +177,8 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
         }
         if (localFacetKey != null) {
           _facetLoading[localFacetKey] = false;
+          _facetLoadingReason[localFacetKey] = null;
+          _facetPendingOptionId[localFacetKey] = null;
           _facetError[localFacetKey] = e.toString();
           if (isLoadMore) {
             // Откатываем страницу при ошибке.
@@ -178,7 +191,11 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   }
 
   void _loadMoreFacetOptions(String facetKey) {
-    final nextPage = (_facetCurrentPages[facetKey] ?? 1) + 1;
+    // Страницу считаем по факту уже загруженных элементов, а не по
+    // сохранённому счётчику: он обнуляется при полной перезагрузке фасетов
+    // после выбора опции, хотя сами элементы (с расширенным лимитом) остаются.
+    final loadedCount = _facetAllItems[facetKey]?.length ?? 0;
+    final nextPage = (loadedCount ~/ _defaultFacetLimit) + 1;
     setState(() {
       _facetCurrentPages[facetKey] = nextPage;
     });
@@ -196,14 +213,19 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     return result;
   }
 
-  Map<String, int> get _facetLimitMap {
+  Map<String, int> _facetLimitMap({required bool preserveLoadedPages}) {
     final keys = <String>{
       ...OilApi.defaultFacetKeys,
       ..._facetAllItems.keys,
       ..._facetSearch.keys,
       ..._state.selectedFacetIds.keys,
     };
-    return {for (final key in keys) key: _defaultFacetLimit};
+    return {
+      for (final key in keys)
+        key: preserveLoadedPages
+            ? math.max(_defaultFacetLimit, _facetAllItems[key]?.length ?? 0)
+            : _defaultFacetLimit,
+    };
   }
 
   void _updateSelection({
@@ -330,6 +352,10 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     } else {
       selectedFacetIds[facetKey] = next;
     }
+
+    setState(() {
+      _facetPendingOptionId[facetKey] = id;
+    });
 
     _updateSelection(
       selectedFacetIds: selectedFacetIds,
@@ -462,9 +488,17 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     final searchValue = _facetSearch[facetKey] ?? '';
     final hasLocalError = _facetError[facetKey] != null;
     final isLoading = _facetLoading[facetKey] == true;
+    final loadingReason = _facetLoadingReason[facetKey];
+    final pendingOptionId = _facetPendingOptionId[facetKey];
     final selectedSet = selected.toSet();
     final meta = _facetMeta[facetKey];
     final canLoadMore = meta != null && meta.hasMore && !isLoading;
+    // Точечные спиннеры (на строке опции / на кнопке "Загрузить ещё")
+    // покрывают эти случаи — общий индикатор здесь ни к чему.
+    final showGroupLoadingBar =
+        isLoading &&
+        loadingReason != 'loadMore' &&
+        !(loadingReason == 'select' && pendingOptionId != null);
 
     return Card(
       key: _sectionKeyForFacet(facetKey),
@@ -492,7 +526,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
             onChanged: (value) => _onFacetSearchChanged(facetKey, value),
           ),
           const SizedBox(height: 8),
-          if (isLoading)
+          if (showGroupLoadingBar)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: LinearProgressIndicator(minHeight: 2),
@@ -522,17 +556,31 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
           else
             Column(
               children: [
-                ...options.map(
-                  (opt) => CheckboxListTile(
+                ...options.map((opt) {
+                  final isPending =
+                      isLoading &&
+                      loadingReason == 'select' &&
+                      pendingOptionId == opt.id;
+                  return CheckboxListTile(
                     value: selectedSet.contains(opt.id),
-                    onChanged: (_) => _toggleFacetOption(facetKey, opt.id),
+                    onChanged:
+                        isLoading
+                            ? null
+                            : (_) => _toggleFacetOption(facetKey, opt.id),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     title: Text(opt.title),
-                    secondary: Text('${opt.count}'),
+                    secondary:
+                        isPending
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : Text('${opt.count}'),
                     controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                ),
+                  );
+                }),
                 if (meta != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -549,6 +597,15 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
                           TextButton(
                             onPressed: () => _loadMoreFacetOptions(facetKey),
                             child: const Text('Загрузить ещё'),
+                          )
+                        else if (isLoading && loadingReason == 'loadMore')
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
                       ],
                     ),
