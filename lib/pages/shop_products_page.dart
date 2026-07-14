@@ -95,7 +95,7 @@ class _ShopProductsPageState extends State<ShopProductsPage> {
         }
         return ListView.separated(
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final item = items[index];
             return _ProductTile(item: item);
@@ -104,6 +104,16 @@ class _ShopProductsPageState extends State<ShopProductsPage> {
       },
     );
   }
+}
+
+String _formatPrice(double price) {
+  final s = price.truncate().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
 }
 
 class _ProductTile extends StatelessWidget {
@@ -118,6 +128,7 @@ class _ProductTile extends StatelessWidget {
     if (item.viscosityTitle.isNotEmpty) subtitleParts.add(item.viscosityTitle);
     final subtitle = subtitleParts.join(' • ');
     final previewUrl = item.images.isNotEmpty ? item.images.first : item.thumb;
+    final minPrice = item.minPrice;
 
     return Container(
       decoration: BoxDecoration(
@@ -158,9 +169,24 @@ class _ProductTile extends StatelessWidget {
           item.title,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (subtitle.isNotEmpty)
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            if (minPrice != null)
+              Text(
+                'от ${_formatPrice(minPrice)} ₸',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
+              ),
+          ],
         ),
       ),
     );

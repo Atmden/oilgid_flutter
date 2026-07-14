@@ -63,6 +63,7 @@ class OilItemModel extends OilItem {
     required super.description,
     required super.thumb,
     required super.images,
+    super.minPrice,
   });
 
   factory OilItemModel.fromJson(Map<String, dynamic> json) {
@@ -89,6 +90,9 @@ class OilItemModel extends OilItem {
       images: (json['images'] as List<dynamic>? ?? [])
           .whereType<String>()
           .toList(),
+      minPrice: json['min_price'] != null
+          ? double.tryParse(json['min_price'].toString())
+          : null,
     );
   }
 }

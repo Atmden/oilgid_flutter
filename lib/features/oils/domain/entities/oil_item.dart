@@ -16,6 +16,7 @@ class OilItem {
   final String description;
   final String thumb;
   final List<String> images;
+  final double? minPrice;
 
   OilItem({
     required this.id,
@@ -32,6 +33,7 @@ class OilItem {
     required this.description,
     required this.thumb,
     required this.images,
+    this.minPrice,
   });
 }
 
