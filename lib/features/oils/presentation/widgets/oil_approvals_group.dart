@@ -81,7 +81,7 @@ class InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const InfoRow({super.key,required this.label, required this.value});
+  const InfoRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +96,90 @@ class InfoRow extends StatelessWidget {
             child: Text(label, style: const TextStyle(color: Colors.black54)),
           ),
           Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Поле "метка сверху + текст на всю ширину", с раскрытием длинного текста
+/// по кнопке "Показать ещё" / "Скрыть".
+class ExpandableInfoRow extends StatefulWidget {
+  final String? label;
+  final String value;
+  final int collapsedMaxLines;
+  final TextAlign textAlign;
+
+  const ExpandableInfoRow({
+    super.key,
+    this.label,
+    required this.value,
+    this.collapsedMaxLines = 5,
+    this.textAlign = TextAlign.start,
+  });
+
+  @override
+  State<ExpandableInfoRow> createState() => _ExpandableInfoRowState();
+}
+
+class _ExpandableInfoRowState extends State<ExpandableInfoRow> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.value.isEmpty) return const SizedBox.shrink();
+
+    const textStyle = TextStyle(fontSize: 14);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.label != null && widget.label!.isNotEmpty) ...[
+            Text(widget.label!, style: const TextStyle(color: Colors.black54)),
+            const SizedBox(height: 4),
+          ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final painter = TextPainter(
+                text: TextSpan(text: widget.value, style: textStyle),
+                maxLines: widget.collapsedMaxLines,
+                textDirection: Directionality.of(context),
+              )..layout(maxWidth: constraints.maxWidth);
+              final isOverflowing = painter.didExceedMaxLines;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.value,
+                    style: textStyle,
+                    textAlign: widget.textAlign,
+                    maxLines: _expanded ? null : widget.collapsedMaxLines,
+                    overflow: _expanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                  ),
+                  if (isOverflowing)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: GestureDetector(
+                        onTap: () => setState(() => _expanded = !_expanded),
+                        child: Text(
+                          _expanded ? 'Скрыть' : 'Показать ещё',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );

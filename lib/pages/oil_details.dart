@@ -69,18 +69,20 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   void _startLoadDetails(int oilId) {
     final future = _oilRepository.getOilById(oilId: oilId);
     _detailsFuture = future;
-    future.then((item) {
-      if (!mounted) return;
-      setState(() {
-        _item = item;
-      });
-      _loadShopsForItem(item);
-    }).catchError((Object error, StackTrace stackTrace) {
-      // В этом сценарии FutureBuilder сам покажет экран ошибки.
-      // Здесь важно не допустить необработанное async-исключение, которое
-      // может завершить приложение в release-сборке.
-      debugPrint('Failed to load oil details: $error');
-    });
+    future
+        .then((item) {
+          if (!mounted) return;
+          setState(() {
+            _item = item;
+          });
+          _loadShopsForItem(item);
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          // В этом сценарии FutureBuilder сам покажет экран ошибки.
+          // Здесь важно не допустить необработанное async-исключение, которое
+          // может завершить приложение в release-сборке.
+          debugPrint('Failed to load oil details: $error');
+        });
   }
 
   void _retryLoadDetails() {
@@ -242,11 +244,17 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InfoRow(label: 'Бренд', value: item.brandTitle),
-                  InfoRow(label: 'Вязкость/Тип масла', value: item.viscosityTitle),
+                  InfoRow(
+                    label: 'Вязкость/Тип масла',
+                    value: item.viscosityTitle,
+                  ),
                   if (_volume.isNotEmpty)
                     InfoRow(label: 'Требуемый объем', value: '$_volume л.'),
                   if (_description.isNotEmpty)
-                    InfoRow(label: 'Описание', value: _description),
+                    ExpandableInfoRow(
+                      label: 'Рекомендации',
+                      value: _description,
+                    ),
                   if (item.specification != null)
                     ApprovalsGroup(
                       title: 'ACEA',
@@ -273,8 +281,12 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
             if (item.description.isNotEmpty) const SizedBox(height: 12),
             if (item.description.isNotEmpty)
               InfoBlock(
-                title: 'Описание',
-                child: Text(item.description, textAlign: TextAlign.justify),
+                title: 'Описание масла',
+                child: ExpandableInfoRow(
+                  value: item.description,
+                  collapsedMaxLines: 5,
+                  textAlign: TextAlign.justify,
+                ),
               ),
             const SizedBox(height: 16),
 
@@ -397,9 +409,8 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                     if (item.brand!.description.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          item.brand!.description,
-                          style: const TextStyle(fontSize: 14),
+                        child: ExpandableInfoRow(
+                          value: item.brand!.description,
                           textAlign: TextAlign.justify,
                         ),
                       ),
