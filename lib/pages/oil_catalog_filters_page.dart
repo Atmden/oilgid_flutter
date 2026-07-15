@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:oil_gid/core/api/app_api.dart';
@@ -115,10 +114,12 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
       final result = await AppApi().oilApi.getCatalogFacets(
         selectedFacetIds: _state.selectedFacetIds,
         facetSearch: _normalizedFacetSearch,
-        // При полной перезагрузке (не load-more) запрашиваем для каждого
-        // фасета столько элементов, сколько уже подгружено, иначе ответ
-        // урежет ранее дозагруженные страницы до дефолтного лимита.
-        facetLimit: _facetLimitMap(preserveLoadedPages: !isLoadMore),
+        // Лимит всегда дефолтный: раздутый лимит для фасета с большим числом
+        // дозагруженных страниц (например 101 для полностью развёрнутого
+        // списка брендов) может не пройти валидацию на сервере. Ранее
+        // загруженные страницы сохраняем не лимитом, а слиянием ответа
+        // с уже накопленными данными (см. ниже).
+        facetLimit: _facetLimitMap(),
         facetPage: facetPageForRequest,
         sort: _state.sort,
         search: _state.search,
@@ -159,13 +160,57 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
             };
           }
         } else {
-          // Полная перезагрузка: заменяем всё и сбрасываем страницы.
-          _facetAllItems = {
-            for (final e in result.facets.entries)
-              e.key: List<CatalogFacetOption>.from(e.value),
-          };
-          _facetMeta = Map<String, CatalogFacetMeta>.from(result.facetsMeta);
-          _facetCurrentPages.clear();
+          // Полная перезагрузка (выбор опции, поиск, сортировка): не
+          // затираем накопленные данные целиком, а сливаем свежий ответ
+          // с уже загруженным. Так дозагруженные через "Загрузить ещё"
+          // страницы не пропадают, а если сервер по какой-то причине не
+          // прислал часть фасетов (пустой/битый ответ), уже показанные
+          // группы и опции не исчезают из интерфейса.
+          final mergedItems = <String, List<CatalogFacetOption>>{};
+          result.facets.forEach((key, freshItems) {
+            final previous = _facetAllItems[key] ?? const [];
+            if (previous.isEmpty) {
+              mergedItems[key] = List<CatalogFacetOption>.from(freshItems);
+              return;
+            }
+            // Сервер принудительно продвигает выбранные элементы на первую
+            // страницу — если просто ставить freshItems в начало списка,
+            // только что выбранная опция будет "прыгать" наверх. Поэтому
+            // сохраняем прежний порядок и только обновляем данные
+            // (count/selected) уже известных элементов по id.
+            final freshById = {for (final item in freshItems) item.id: item};
+            final merged = <CatalogFacetOption>[
+              for (final old in previous) freshById[old.id] ?? old,
+            ];
+            final previousIds = previous.map((e) => e.id).toSet();
+            merged.addAll(
+              freshItems.where((item) => !previousIds.contains(item.id)),
+            );
+            mergedItems[key] = merged;
+          });
+          _facetAllItems.forEach((key, value) {
+            mergedItems.putIfAbsent(key, () => value);
+          });
+
+          final mergedMeta = <String, CatalogFacetMeta>{..._facetMeta};
+          result.facetsMeta.forEach((key, freshMeta) {
+            final loadedCount = mergedItems[key]?.length ?? 0;
+            // Если после слияния уже загружено больше (или столько же),
+            // сколько всего есть на сервере, считаем фасет полностью
+            // загруженным — иначе кнопка "Загрузить ещё" появится снова
+            // и потребует лишнего клика без реальной дозагрузки.
+            mergedMeta[key] = loadedCount >= freshMeta.total
+                ? CatalogFacetMeta(
+                  currentPage: freshMeta.lastPage,
+                  lastPage: freshMeta.lastPage,
+                  perPage: freshMeta.perPage,
+                  total: freshMeta.total,
+                )
+                : freshMeta;
+          });
+
+          _facetAllItems = mergedItems;
+          _facetMeta = mergedMeta;
         }
       });
     } catch (e) {
@@ -213,19 +258,14 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     return result;
   }
 
-  Map<String, int> _facetLimitMap({required bool preserveLoadedPages}) {
+  Map<String, int> _facetLimitMap() {
     final keys = <String>{
       ...OilApi.defaultFacetKeys,
       ..._facetAllItems.keys,
       ..._facetSearch.keys,
       ..._state.selectedFacetIds.keys,
     };
-    return {
-      for (final key in keys)
-        key: preserveLoadedPages
-            ? math.max(_defaultFacetLimit, _facetAllItems[key]?.length ?? 0)
-            : _defaultFacetLimit,
-    };
+    return {for (final key in keys) key: _defaultFacetLimit};
   }
 
   void _updateSelection({
