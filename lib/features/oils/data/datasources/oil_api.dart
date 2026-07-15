@@ -253,6 +253,18 @@ class OilApi {
     );
 
     final data = response.data;
+    final statusCode = response.statusCode;
+    if (statusCode != null && statusCode >= 400) {
+      // Dio настроен с validateStatus: (_) => true и не бросает исключение
+      // сам, поэтому ошибочный ответ (напр. превышен лимит facet_limit)
+      // нужно распознать явно — иначе он молча распарсится как пустой
+      // успешный результат и затрёт уже загруженные фасеты.
+      final message =
+          data is Map && data['message'] is String
+              ? data['message'] as String
+              : 'Не удалось загрузить фильтры.';
+      throw Exception('[$statusCode] $message');
+    }
     final root = data is Map ? data['data'] : null;
     final facetsRaw = root is Map ? root['facets'] : null;
     final facetsMetaRaw = root is Map ? root['facets_meta'] : null;
