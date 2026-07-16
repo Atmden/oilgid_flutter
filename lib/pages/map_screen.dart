@@ -45,10 +45,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const int _clusterMinZoom = 13;
   static const double _clusterRadius = 60;
 
+  AppLatLong? _userLocation;
+  BitmapDescriptor? _userLocationIcon;
+
   @override
   void initState() {
     super.initState();
     _initPermission().ignore();
+    _buildUserLocationIcon();
   }
 
   @override
@@ -93,6 +97,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               );
             },
           ),
+          if (_userLocation != null && _userLocationIcon != null)
+            PlacemarkMapObject(
+              mapId: const MapObjectId('user_location'),
+              point: Point(
+                latitude: _userLocation!.lat,
+                longitude: _userLocation!.lng,
+              ),
+              zIndex: 100,
+              opacity: 1,
+              consumeTapEvents: true,
+              onTap: (_, __) => _showUserLocationTooltip(),
+              icon: PlacemarkIcon.single(
+                PlacemarkIconStyle(
+                  image: _userLocationIcon!,
+                  anchor: const Offset(0.5, 0.5),
+                ),
+              ),
+            ),
         ],
         onMapCreated: (controller) {
           mapControllerCompleter.complete(controller);
@@ -122,7 +144,53 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       location = defLocation;
     }
 
+    if (mounted) {
+      setState(() {
+        _userLocation = location;
+      });
+    }
+
     _moveToCurrentLocation(location);
+  }
+
+  Future<void> _buildUserLocationIcon() async {
+    const double size = 80;
+    const center = Offset(size / 2, size / 2);
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    canvas.drawCircle(center, size / 2, Paint()..color = const Color(0x334285F4));
+    canvas.drawCircle(center, size / 3, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      center,
+      size / 3 - 6,
+      Paint()..color = const Color(0xFF4285F4),
+    );
+
+    final image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    final icon = BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+
+    if (!mounted) return;
+    setState(() {
+      _userLocationIcon = icon;
+    });
+  }
+
+  void _showUserLocationTooltip() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Это я, я здесь'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   Future<void> _moveToCurrentLocation(AppLatLong appLatLong) async {
