@@ -88,6 +88,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
     String? localFacetKey,
     bool showGlobalLoading = false,
     bool isLoadMore = false,
+    bool isSearchChange = false,
   }) async {
     final requestId = ++_lastRequestId;
 
@@ -168,6 +169,13 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
           // группы и опции не исчезают из интерфейса.
           final mergedItems = <String, List<CatalogFacetOption>>{};
           result.facets.forEach((key, freshItems) {
+            if (isSearchChange && key == localFacetKey) {
+              // Текст поиска именно этого фасета изменился — накопленные
+              // ранее элементы относятся к другому запросу и не должны
+              // примешиваться, иначе список визуально не меняется при вводе.
+              mergedItems[key] = List<CatalogFacetOption>.from(freshItems);
+              return;
+            }
             final previous = _facetAllItems[key] ?? const [];
             if (previous.isEmpty) {
               mergedItems[key] = List<CatalogFacetOption>.from(freshItems);
@@ -340,7 +348,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
       const Duration(milliseconds: _facetDebounceMs),
       () {
         if (!mounted) return;
-        _loadFacets(localFacetKey: facetKey);
+        _loadFacets(localFacetKey: facetKey, isSearchChange: true);
       },
     );
   }
