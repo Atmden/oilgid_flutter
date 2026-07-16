@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 import 'package:oil_gid/features/subscription/domain/entities/subscription_plan.dart';
@@ -504,6 +505,44 @@ class _PaywallPageState extends State<PaywallPage> {
             'Подписка продлевается автоматически. Отменить можно в настройках магазина.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: Colors.black38),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => launchUrl(
+                  Uri.parse('https://oilgid.kz/terms-of-use'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: const Text(
+                  'Условия использования',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.black45,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              const Text(
+                '  ·  ',
+                style: TextStyle(fontSize: 11, color: Colors.black38),
+              ),
+              GestureDetector(
+                onTap: () => launchUrl(
+                  Uri.parse('https://oilgid.kz/privacy-policy'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: const Text(
+                  'Политика конфиденциальности',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.black45,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
