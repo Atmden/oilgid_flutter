@@ -32,6 +32,7 @@ class _PaywallPageState extends State<PaywallPage> {
   String? _error;
 
   late StreamSubscription<List<PurchaseDetails>> _purchaseSub;
+  Timer? _purchaseTimeoutTimer;
 
   String get _currentPlatform => Platform.isIOS ? 'app_store' : 'play_market';
 
@@ -48,7 +49,22 @@ class _PaywallPageState extends State<PaywallPage> {
   @override
   void dispose() {
     _purchaseSub.cancel();
+    _purchaseTimeoutTimer?.cancel();
     super.dispose();
+  }
+
+  void _startPurchaseTimeout() {
+    _purchaseTimeoutTimer?.cancel();
+    _purchaseTimeoutTimer = Timer(const Duration(seconds: 30), () {
+      if (!mounted || !_purchasing) return;
+      setState(() => _purchasing = false);
+      _showError('Магазин не ответил. Попробуйте позже.');
+    });
+  }
+
+  void _stopPurchaseTimeout() {
+    _purchaseTimeoutTimer?.cancel();
+    _purchaseTimeoutTimer = null;
   }
 
   Future<void> _load() async {
@@ -132,6 +148,7 @@ class _PaywallPageState extends State<PaywallPage> {
 
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
+        _stopPurchaseTimeout();
         try {
           await _validateWithBackend(purchase);
           await InAppPurchase.instance.completePurchase(purchase);
@@ -146,7 +163,16 @@ class _PaywallPageState extends State<PaywallPage> {
         continue;
       }
 
+      if (purchase.status == PurchaseStatus.canceled) {
+        _stopPurchaseTimeout();
+        if (!mounted) return;
+        // Пользователь сам отменил покупку — ошибку не показываем
+        setState(() => _purchasing = false);
+        continue;
+      }
+
       if (purchase.status == PurchaseStatus.error) {
+        _stopPurchaseTimeout();
         if (!mounted) return;
         setState(() => _purchasing = false);
         final msg = purchase.error?.message ?? '';
@@ -229,11 +255,13 @@ class _PaywallPageState extends State<PaywallPage> {
     }
 
     setState(() => _purchasing = true);
+    _startPurchaseTimeout();
     try {
       await InAppPurchase.instance.buyNonConsumable(
         purchaseParam: PurchaseParam(productDetails: storeProduct),
       );
     } catch (e) {
+      _stopPurchaseTimeout();
       if (!mounted) return;
       setState(() => _purchasing = false);
       _showError(e.toString().replaceFirst('Exception: ', ''));
@@ -247,10 +275,12 @@ class _PaywallPageState extends State<PaywallPage> {
       return;
     }
     setState(() => _purchasing = true);
+    _startPurchaseTimeout();
     try {
       await InAppPurchase.instance.restorePurchases();
       // Результат придёт через purchaseStream
     } catch (e) {
+      _stopPurchaseTimeout();
       if (!mounted) return;
       setState(() => _purchasing = false);
       _showError(e.toString().replaceFirst('Exception: ', ''));
