@@ -75,4 +75,7 @@ class Endpoints {
   static const subscriptionStatus = '/subscription/status';
   static const subscriptionValidatePurchase = '/subscription/validate-purchase';
   static const subscriptionRestore = '/subscription/restore';
+
+  // push notifications
+  static const deviceTokens = '/device-tokens';
 }

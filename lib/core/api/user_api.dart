@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:oil_gid/core/notifications/push_notification_service.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 
 import 'dio_client.dart';
@@ -46,6 +49,7 @@ class UserApi {
     }
 
     await TokenStorage().saveUserToken(token);
+    unawaited(PushNotificationService.instance.registerAfterLogin());
   }
 
   Future<Map<String, dynamic>> updateProfile({

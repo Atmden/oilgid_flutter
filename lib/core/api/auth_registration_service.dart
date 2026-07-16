@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:oil_gid/core/notifications/push_notification_service.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 
 import 'dio_client.dart';
@@ -46,6 +49,7 @@ class AuthRegistrationService {
     await _tokenStorage.saveRegisteredPhone(payload.phoneNumber);
     await _tokenStorage.saveUserToken(token);
     await _tokenStorage.setPhoneRegistrationCompleted(true);
+    unawaited(PushNotificationService.instance.registerAfterLogin());
   }
 
   Future<void> loginWithPhone({
@@ -71,6 +75,7 @@ class AuthRegistrationService {
     await _tokenStorage.saveRegisteredPhone(phoneNumber);
     await _tokenStorage.saveUserToken(token);
     await _tokenStorage.setPhoneRegistrationCompleted(true);
+    unawaited(PushNotificationService.instance.registerAfterLogin());
   }
 
   String? _extractResponseError(dynamic data) {

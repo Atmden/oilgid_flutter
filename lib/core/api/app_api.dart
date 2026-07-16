@@ -99,4 +99,15 @@ class AppApi {
     final response = await _dio.post(Endpoints.addCarRequest, data: data);
     return response.data;
   }
+
+  Future<bool> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    final response = await _dio.post(
+      Endpoints.deviceTokens,
+      data: {'token': token, 'platform': platform},
+    );
+    return response.statusCode != null && response.statusCode! < 400;
+  }
 }

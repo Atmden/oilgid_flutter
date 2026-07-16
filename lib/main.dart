@@ -39,6 +39,7 @@ import 'package:oil_gid/pages/garage_service_record_page.dart';
 import 'package:oil_gid/pages/paywall_page.dart';
 import 'package:oil_gid/core/startup/startup_controller.dart';
 import 'package:oil_gid/core/location/app_location_service.dart';
+import 'package:oil_gid/core/notifications/push_notification_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 Future<void> main() async {
@@ -286,6 +287,11 @@ class _MyAppState extends State<MyApp> {
     _privacyAccepted = widget.privacyAccepted;
     if (_privacyAccepted) {
       unawaited(AppLocationService.instance.ensureLocation());
+      unawaited(
+        PushNotificationService.instance.init(
+          onNotificationUrl: _onIncomingUri,
+        ),
+      );
     }
     _deepLinkController = DeepLinkController(onUri: _onIncomingUri);
     unawaited(_deepLinkController.start());
@@ -340,6 +346,9 @@ class _MyAppState extends State<MyApp> {
       _privacyAccepted = true;
     });
     unawaited(AppLocationService.instance.ensureLocation());
+    unawaited(
+      PushNotificationService.instance.init(onNotificationUrl: _onIncomingUri),
+    );
     final nav = _navigatorKey.currentState;
     if (nav == null) return;
     // Убираем TermOfUse из стека
