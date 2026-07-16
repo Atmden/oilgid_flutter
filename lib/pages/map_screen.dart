@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oil_gid/core/api/app_api.dart';
+import 'package:oil_gid/core/location/app_location_service.dart';
 import 'package:oil_gid/core/utils/navigation_launcher.dart';
 import 'package:oil_gid/core/utils/yandex_map_utils.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
@@ -51,7 +52,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _initPermission().ignore();
+    _fetchCurrentLocation().ignore();
     _buildUserLocationIcon();
   }
 
@@ -127,19 +128,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // Location
   // ---------------------------------------------------------------------------
 
-  Future<void> _initPermission() async {
-    if (!await LocationServices().checkPermission()) {
-      await LocationServices().requestPermission();
-    }
-    await _fetchCurrentLocation();
-  }
-
   Future<void> _fetchCurrentLocation() async {
-    AppLatLong location;
     const defLocation = AqtobeLocation();
+    AppLatLong location;
 
     try {
-      location = await LocationServices().getCurrentLocation();
+      final position = await AppLocationService.instance.ensureLocation();
+      location = position == null
+          ? defLocation
+          : AppLatLong(lat: position.latitude, lng: position.longitude);
     } catch (_) {
       location = defLocation;
     }

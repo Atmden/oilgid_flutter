@@ -38,6 +38,7 @@ import 'package:oil_gid/pages/garage_service_record_form_page.dart';
 import 'package:oil_gid/pages/garage_service_record_page.dart';
 import 'package:oil_gid/pages/paywall_page.dart';
 import 'package:oil_gid/core/startup/startup_controller.dart';
+import 'package:oil_gid/core/location/app_location_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 Future<void> main() async {
@@ -283,6 +284,9 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _privacyAccepted = widget.privacyAccepted;
+    if (_privacyAccepted) {
+      unawaited(AppLocationService.instance.ensureLocation());
+    }
     _deepLinkController = DeepLinkController(onUri: _onIncomingUri);
     unawaited(_deepLinkController.start());
     _unauthorizedSub = DioClient.onUnauthorized.stream.listen((_) {
@@ -335,6 +339,7 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _privacyAccepted = true;
     });
+    unawaited(AppLocationService.instance.ensureLocation());
     final nav = _navigatorKey.currentState;
     if (nav == null) return;
     // Убираем TermOfUse из стека

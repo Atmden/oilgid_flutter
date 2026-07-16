@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:oil_gid/core/api/app_api.dart';
+import 'package:oil_gid/core/location/app_location_service.dart';
 import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.dart';
 import 'package:oil_gid/features/shops/domain/entities/shop.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
@@ -32,7 +32,7 @@ class _ShopsCatalogPageState extends State<ShopsCatalogPage> {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   String? _error;
-  String _sort = 'name';
+  String _sort = 'distance';
   String? _search;
   double? _userLat;
   double? _userLng;
@@ -42,7 +42,12 @@ class _ShopsCatalogPageState extends State<ShopsCatalogPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _loadFirstPage();
+    _initialLoad();
+  }
+
+  Future<void> _initialLoad() async {
+    await _ensureGeoForDistanceSort();
+    await _loadFirstPage();
   }
 
   @override
@@ -167,7 +172,7 @@ class _ShopsCatalogPageState extends State<ShopsCatalogPage> {
       return;
     }
 
-    final position = await _loadUserLocation();
+    final position = await AppLocationService.instance.ensureLocation();
     if (!mounted) return;
     if (position == null) {
       setState(() {
@@ -184,31 +189,6 @@ class _ShopsCatalogPageState extends State<ShopsCatalogPage> {
       _userLng = position.longitude;
       _geoFallbackMessage = null;
     });
-  }
-
-  Future<Position?> _loadUserLocation() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) return null;
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return null;
-    }
-
-    try {
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-    } catch (_) {
-      return null;
-    }
   }
 
   String get _effectiveSort {
