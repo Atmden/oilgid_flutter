@@ -8,7 +8,6 @@ import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/core/location/app_location_service.dart';
 import 'package:oil_gid/core/notifications/push_channel.dart';
 import 'package:oil_gid/core/notifications/push_message_display.dart';
-import 'package:oil_gid/core/notifications/push_token_cache.dart';
 
 /// Инициализирует push-уведомления (FCM) один раз за время жизни приложения:
 /// запрашивает разрешение, регистрирует токен устройства на бэкенде и
@@ -23,7 +22,6 @@ class PushNotificationService {
   static const _broadcastTopic = 'all';
 
   final _localNotifications = FlutterLocalNotificationsPlugin();
-  final _tokenCache = PushTokenCache();
   final _appApi = AppApi();
 
   bool _initialized = false;
@@ -51,11 +49,13 @@ class PushNotificationService {
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
+      debugPrint('PUSH: permission status = ${settings.authorizationStatus}');
       if (!granted) return;
 
       unawaited(messaging.subscribeToTopic(_broadcastTopic));
 
       final token = await messaging.getToken();
+      debugPrint('PUSH: got FCM token = $token');
       await _registerToken(token);
       messaging.onTokenRefresh.listen(_registerToken);
 
@@ -78,6 +78,7 @@ class PushNotificationService {
   Future<void> registerAfterLogin() async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
+      debugPrint('PUSH: registerAfterLogin token = $token');
       if (token == null) return;
       final position = await AppLocationService.instance.ensureLocation();
       final ok = await _appApi.registerDeviceToken(
@@ -86,26 +87,36 @@ class PushNotificationService {
         lat: position?.latitude,
         lng: position?.longitude,
       );
-      if (ok) {
-        await _tokenCache.saveLastRegisteredToken(token);
-      }
-    } catch (_) {}
+      debugPrint('PUSH: registerAfterLogin ok=$ok');
+    } catch (e) {
+      debugPrint('PUSH: registerAfterLogin threw: $e');
+    }
   }
 
+  /// Отправляет токен и координаты на бэкенд при каждом запуске приложения
+  /// (а не только один раз) — так бэкенд всегда видит актуальную геопозицию
+  /// устройства, даже если сам FCM-токен не менялся.
   Future<void> _registerToken(String? token) async {
-    if (token == null) return;
-    final lastRegistered = await _tokenCache.getLastRegisteredToken();
-    if (lastRegistered == token) return;
+    if (token == null) {
+      debugPrint('PUSH: _registerToken called with null token, skipping');
+      return;
+    }
 
     final position = await AppLocationService.instance.ensureLocation();
-    final ok = await _appApi.registerDeviceToken(
-      token: token,
-      platform: _platformName,
-      lat: position?.latitude,
-      lng: position?.longitude,
+    debugPrint(
+      'PUSH: registering token, '
+      'position=${position?.latitude},${position?.longitude}',
     );
-    if (ok) {
-      await _tokenCache.saveLastRegisteredToken(token);
+    try {
+      final ok = await _appApi.registerDeviceToken(
+        token: token,
+        platform: _platformName,
+        lat: position?.latitude,
+        lng: position?.longitude,
+      );
+      debugPrint('PUSH: registerDeviceToken ok=$ok');
+    } catch (e) {
+      debugPrint('PUSH: registerDeviceToken threw: $e');
     }
   }
 

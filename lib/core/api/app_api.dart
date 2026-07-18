@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:oil_gid/core/api/init_token_generator.dart';
 import 'package:oil_gid/core/storage/token_storage.dart';
 
@@ -106,15 +107,22 @@ class AppApi {
     double? lat,
     double? lng,
   }) async {
-    final response = await _dio.post(
-      Endpoints.deviceTokens,
-      data: {
-        'token': token,
-        'platform': platform,
-        if (lat != null) 'lat': lat,
-        if (lng != null) 'lng': lng,
-      },
-    );
-    return response.statusCode != null && response.statusCode! < 400;
+    final data = {
+      'token': token,
+      'platform': platform,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    };
+    debugPrint('PUSH: POST ${Endpoints.deviceTokens} $data');
+    try {
+      final response = await _dio.post(Endpoints.deviceTokens, data: data);
+      debugPrint(
+        'PUSH: response ${response.statusCode} ${response.data}',
+      );
+      return response.statusCode != null && response.statusCode! < 400;
+    } catch (e) {
+      debugPrint('PUSH: request failed: $e');
+      rethrow;
+    }
   }
 }
