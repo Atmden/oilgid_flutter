@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:oil_gid/core/api/app_api.dart';
-import 'package:oil_gid/core/notifications/push_background_handler.dart';
 import 'package:oil_gid/core/notifications/push_channel.dart';
 import 'package:oil_gid/core/notifications/push_message_display.dart';
 import 'package:oil_gid/core/notifications/push_token_cache.dart';
@@ -53,12 +52,20 @@ class PushNotificationService {
           settings.authorizationStatus == AuthorizationStatus.provisional;
       if (!granted) return;
 
-      FirebaseMessaging.onBackgroundMessage(pushBackgroundMessageHandler);
-
       unawaited(messaging.subscribeToTopic(_broadcastTopic));
 
-      await _registerToken(await messaging.getToken());
+      final token = await messaging.getToken();
+      debugPrint('FCM_TOKEN: $token');
+      await _registerToken(token);
       messaging.onTokenRefresh.listen(_registerToken);
+
+      final apnsToken = await messaging.getAPNSToken();
+      if (apnsToken != null) {
+        await _appApi.registerDeviceToken(
+          token: apnsToken,
+          platform: 'ios-apns',
+        );
+      }
 
       FirebaseMessaging.onMessage.listen(_showForegroundNotification);
       FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);

@@ -7,7 +7,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:oil_gid/core/api/app_api.dart';
+import 'package:oil_gid/core/notifications/push_background_handler.dart';
 import 'package:oil_gid/firebase_options.dart';
 
 enum StartupStep { firebase, appInit, hiveInit, hiveOpenBox, prefs }
@@ -83,6 +85,7 @@ class StartupController {
           return true;
         };
         analytics = FirebaseAnalytics.instance;
+        FirebaseMessaging.onBackgroundMessage(pushBackgroundMessageHandler);
       },
     );
 

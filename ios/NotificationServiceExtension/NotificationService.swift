@@ -18,17 +18,13 @@ class NotificationService: UNNotificationServiceExtension {
       return
     }
 
-    // Скачивает картинку по URL из payload (notification.image) и прикрепляет
-    // её к содержимому уведомления перед показом.
-    FIRMessagingExtensionHelper.populateNotificationContent(
+    FIRMessagingExtensionHelper().populateNotificationContent(
       bestAttemptContent,
       withContentHandler: contentHandler
     )
   }
 
   override func serviceExtensionTimeWillExpire() {
-    // Вызывается системой перед истечением таймаута (~30 сек) — показываем
-    // то, что успели собрать, без картинки, если она не скачалась вовремя.
     if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
       contentHandler(bestAttemptContent)
     }

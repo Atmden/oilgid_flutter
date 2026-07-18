@@ -19,13 +19,13 @@
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.usernotifications.service</string>
 		<key>NSExtensionPrincipalClass</key>
-		<string>NotificationService</string>
+		<string>$(PRODUCT_MODULE_NAME).NotificationService</string>
 	</dict>
 </dict>
 </plist>

@@ -1,6 +1,8 @@
 # Uncomment this line to define a global platform for your project
 platform :ios, '15.0'
 
+install! 'cocoapods', :disable_input_output_paths => true
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 ENV['YANDEX_MAPKIT_VARIANT'] = 'full'
@@ -35,10 +37,39 @@ target 'Runner' do
   target 'RunnerTests' do
     inherit! :search_paths
   end
+  target 'NotificationServiceExtension' do
+    use_frameworks!
+    inherit! :search_paths
+  end
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+  end
+
+  ext_ldflags = [
+    '$(inherited)',
+    '-ObjC',
+    '-framework "FBLPromises"',
+    '-framework "FirebaseCore"',
+    '-framework "FirebaseCoreExtension"',
+    '-framework "FirebaseCoreInternal"',
+    '-framework "FirebaseInstallations"',
+    '-framework "FirebaseMessaging"',
+    '-framework "GoogleDataTransport"',
+    '-framework "GoogleUtilities"',
+    '-framework "Promises"',
+    '-framework "nanopb"',
+  ].join(' ')
+
+  %w[debug release profile].each do |cfg|
+    path = "#{installer.sandbox.root}/Target Support Files/" \
+           "Pods-NotificationServiceExtension/" \
+           "Pods-NotificationServiceExtension.#{cfg}.xcconfig"
+    next unless File.exist?(path)
+    content = File.read(path)
+    content.gsub!(/^OTHER_LDFLAGS = .*$/, "OTHER_LDFLAGS = #{ext_ldflags}")
+    File.write(path, content)
   end
 end
