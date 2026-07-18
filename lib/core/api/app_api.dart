@@ -103,10 +103,17 @@ class AppApi {
   Future<bool> registerDeviceToken({
     required String token,
     required String platform,
+    double? lat,
+    double? lng,
   }) async {
     final response = await _dio.post(
       Endpoints.deviceTokens,
-      data: {'token': token, 'platform': platform},
+      data: {
+        'token': token,
+        'platform': platform,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
+      },
     );
     return response.statusCode != null && response.statusCode! < 400;
   }

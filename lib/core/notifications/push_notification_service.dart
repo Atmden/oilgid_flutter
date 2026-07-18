@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:oil_gid/core/api/app_api.dart';
+import 'package:oil_gid/core/location/app_location_service.dart';
 import 'package:oil_gid/core/notifications/push_channel.dart';
 import 'package:oil_gid/core/notifications/push_message_display.dart';
 import 'package:oil_gid/core/notifications/push_token_cache.dart';
@@ -55,17 +56,8 @@ class PushNotificationService {
       unawaited(messaging.subscribeToTopic(_broadcastTopic));
 
       final token = await messaging.getToken();
-      debugPrint('FCM_TOKEN: $token');
       await _registerToken(token);
       messaging.onTokenRefresh.listen(_registerToken);
-
-      final apnsToken = await messaging.getAPNSToken();
-      if (apnsToken != null) {
-        await _appApi.registerDeviceToken(
-          token: apnsToken,
-          platform: 'ios-apns',
-        );
-      }
 
       FirebaseMessaging.onMessage.listen(_showForegroundNotification);
       FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
@@ -87,9 +79,12 @@ class PushNotificationService {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;
+      final position = await AppLocationService.instance.ensureLocation();
       final ok = await _appApi.registerDeviceToken(
         token: token,
         platform: _platformName,
+        lat: position?.latitude,
+        lng: position?.longitude,
       );
       if (ok) {
         await _tokenCache.saveLastRegisteredToken(token);
@@ -102,9 +97,12 @@ class PushNotificationService {
     final lastRegistered = await _tokenCache.getLastRegisteredToken();
     if (lastRegistered == token) return;
 
+    final position = await AppLocationService.instance.ensureLocation();
     final ok = await _appApi.registerDeviceToken(
       token: token,
       platform: _platformName,
+      lat: position?.latitude,
+      lng: position?.longitude,
     );
     if (ok) {
       await _tokenCache.saveLastRegisteredToken(token);
