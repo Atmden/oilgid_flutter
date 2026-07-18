@@ -70,6 +70,8 @@ post_install do |installer|
     next unless File.exist?(path)
     content = File.read(path)
     content.gsub!(/^OTHER_LDFLAGS = .*$/, "OTHER_LDFLAGS = #{ext_ldflags}")
+    flutter_include = '#include "../../../Flutter/Generated.xcconfig"'
+    content = "#{flutter_include}\n#{content}" unless content.include?(flutter_include)
     File.write(path, content)
   end
 end
