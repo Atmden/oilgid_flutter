@@ -237,7 +237,7 @@ class _PaywallPageState extends State<PaywallPage> {
         ),
       );
       if (goLogin == true && mounted) {
-        Navigator.pushNamed(context, '/login');
+        Navigator.pushNamed(context, '/login', arguments: {'returnToCaller': true});
       }
       return;
     }
@@ -393,7 +393,7 @@ class _PaywallPageState extends State<PaywallPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/login')
+                onPressed: () => Navigator.pushNamed(context, '/login', arguments: {'returnToCaller': true})
                     .then((_) => _load()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

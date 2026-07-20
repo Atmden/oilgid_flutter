@@ -49,3 +49,6 @@ app.*.map.json
 
 ios/Config.xcconfig
 sentry.properties
+
+# App Store Connect API keys
+scripts/*.p8

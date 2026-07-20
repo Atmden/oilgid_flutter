@@ -120,6 +120,20 @@ class _LoginPageState extends State<LoginPage> {
   final _userApi = UserApi();
   final _registrationService = AuthRegistrationService();
 
+  bool get _returnToCaller {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) return args['returnToCaller'] == true;
+    return false;
+  }
+
+  void _navigateAfterLogin() {
+    if (_returnToCaller) {
+      Navigator.pop(context);
+    } else {
+      _navigateAfterLogin();
+    }
+  }
+
   final _phoneController = TextEditingController();
   final _smsCodeController = TextEditingController();
   final _nameController = TextEditingController();
@@ -502,7 +516,7 @@ class _LoginPageState extends State<LoginPage> {
         fallbackPhone: _normalizedPhone,
       );
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      _navigateAfterLogin();
     } catch (e) {
       _setError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -536,7 +550,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    _navigateAfterLogin();
   }
 
   Future<void> _logoutToPhoneAuth() async {
@@ -735,7 +749,7 @@ class _LoginPageState extends State<LoginPage> {
       _storedPhone = normalizedPhone;
       await _refreshProfileCache(fallbackPhone: normalizedPhone);
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      _navigateAfterLogin();
     } catch (e) {
       _setError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
