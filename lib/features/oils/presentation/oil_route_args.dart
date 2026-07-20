@@ -51,11 +51,12 @@ class OilDetailsInput {
   final int? oilId;
   final String? volume;
   final String? description;
+  final int? shopId;
 
-  const OilDetailsInput._({this.item, this.oilId, this.volume, this.description});
+  const OilDetailsInput._({this.item, this.oilId, this.volume, this.description, this.shopId});
 
-  factory OilDetailsInput.fromItem(OilItem item, {String volume = '', String description = ''}) {
-    return OilDetailsInput._(item: item, oilId: item.id, volume: volume, description: description,);
+  factory OilDetailsInput.fromItem(OilItem item, {String volume = '', String description = '', int? shopId}) {
+    return OilDetailsInput._(item: item, oilId: item.id, volume: volume, description: description, shopId: shopId,);
   }
 
   factory OilDetailsInput.fromId(int oilId, {String volume = '', String description = ''}) {

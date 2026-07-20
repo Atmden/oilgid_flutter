@@ -15,6 +15,16 @@ import 'package:oil_gid/features/oils/presentation/widgets/oil_approvals_group.d
 import 'package:share_plus/share_plus.dart';
 import 'package:oil_gid/features/oils/data/repositories/oil_repository_impl.dart';
 
+String _formatPrice(double price) {
+  final s = price.truncate().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
+
 class OilDetailsPage extends StatefulWidget {
   const OilDetailsPage({super.key});
 
@@ -26,8 +36,10 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   bool _initialized = false;
   OilItem? _item;
   int? _oilId;
+  int? _shopId;
   String _volume = '';
   String _description = '';
+  final _pricesScrollController = ScrollController();
   Future<List<Shop>>? _shopsFuture;
   Future<OilItem>? _detailsFuture;
   final _shopRepository = ShopRepositoryImpl(AppApi().shopModelApi);
@@ -43,6 +55,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
     if (args is OilDetailsInput) {
       _item = args.item;
       _oilId = args.oilId;
+      _shopId = args.shopId;
       _volume = args.volume ?? '';
       _description = args.description ?? '';
     } else if (args is OilDetailsArgs) {
@@ -129,6 +142,12 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
       debugPrint('Failed to load user location: $e');
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    _pricesScrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -289,6 +308,84 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                 ),
               ),
             const SizedBox(height: 16),
+
+            if (_shopId != null && _shopsFuture != null)
+              FutureBuilder<List<Shop>>(
+                future: _shopsFuture,
+                builder: (context, snapshot) {
+                  final shops = snapshot.data ?? [];
+                  Shop? currentShop;
+                  for (final shop in shops) {
+                    if (shop.id == _shopId) {
+                      currentShop = shop;
+                      break;
+                    }
+                  }
+                  if (currentShop == null || currentShop.prices.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: InfoBlock(
+                      title: 'Цены в магазине «${currentShop.name}»',
+                      child: Scrollbar(
+                        controller: _pricesScrollController,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: _pricesScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: currentShop.prices
+                                .map(
+                                  (p) => Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Container(
+                                      width: 100,
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: AppColors.border,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            p.label,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            p.price != null
+                                                ? '${_formatPrice(p.price!)} ₸'
+                                                : '—',
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
 
             InfoBlock(
               title: 'Где купить',
