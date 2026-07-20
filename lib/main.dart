@@ -18,6 +18,8 @@ import 'package:oil_gid/pages/shop_products_page.dart';
 import 'package:oil_gid/pages/shops_catalog_page.dart';
 import 'package:oil_gid/pages/privacy_policy.dart';
 import 'package:oil_gid/pages/term_of_use.dart';
+import 'package:oil_gid/pages/onboarding/location_permission_page.dart';
+import 'package:oil_gid/pages/onboarding/notification_permission_page.dart';
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -346,15 +348,23 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _onPrivacyAccepted() {
-    final pending = _pendingUri;
-    _pendingUri = null;
     setState(() {
       _privacyAccepted = true;
     });
-    unawaited(_requestStartupPermissions());
+    // Разрешения на геолокацию и уведомления запрашиваются на отдельных
+    // онбординг-экранах (см. lib/pages/onboarding/), а не сразу здесь —
+    // так пользователь видит, зачем они нужны, до системного диалога.
+    _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      '/onboarding/location',
+      (route) => false,
+    );
+  }
+
+  void _finishOnboarding() {
+    final pending = _pendingUri;
+    _pendingUri = null;
     final nav = _navigatorKey.currentState;
     if (nav == null) return;
-    // Убираем TermOfUse из стека
     nav.pushNamedAndRemoveUntil('/home', (route) => false);
     // Если ссылка была отложена — открываем после перехода на home
     if (pending != null) {
@@ -387,6 +397,15 @@ class _MyAppState extends State<MyApp> {
       ),
       routes: {
         '/home': (context) => HomePage(),
+        '/onboarding/location': (context) => LocationPermissionPage(
+          onDone: () => _navigatorKey.currentState?.pushReplacementNamed(
+            '/onboarding/notifications',
+          ),
+        ),
+        '/onboarding/notifications': (context) => NotificationPermissionPage(
+          onNotificationUrl: _onIncomingUri,
+          onDone: _finishOnboarding,
+        ),
         '/privacy_policy': (context) => PrivacyPolicy(),
         '/terms_of_use': (context) => TermOfUse(showAcceptButton: false),
         '/login': (context) => LoginPage(),
