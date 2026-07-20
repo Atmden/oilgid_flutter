@@ -39,7 +39,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   int? _shopId;
   String _volume = '';
   String _description = '';
-  final _pricesScrollController = ScrollController();
   Future<List<Shop>>? _shopsFuture;
   Future<OilItem>? _detailsFuture;
   final _shopRepository = ShopRepositoryImpl(AppApi().shopModelApi);
@@ -142,12 +141,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
       debugPrint('Failed to load user location: $e');
       return null;
     }
-  }
-
-  @override
-  void dispose() {
-    _pricesScrollController.dispose();
-    super.dispose();
   }
 
   @override
@@ -328,59 +321,46 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: InfoBlock(
                       title: 'Цены в магазине «${currentShop.name}»',
-                      child: Scrollbar(
-                        controller: _pricesScrollController,
-                        thumbVisibility: true,
-                        child: SingleChildScrollView(
-                          controller: _pricesScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: currentShop.prices
-                                .map(
-                                  (p) => Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: Container(
-                                      width: 100,
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: AppColors.border,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            p.label,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.black54,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            p.price != null
-                                                ? '${_formatPrice(p.price!)} ₸'
-                                                : '—',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
-                                        ],
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: currentShop.prices
+                            .map(
+                              (p) => Container(
+                                width: 100,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      p.label,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
                                       ),
                                     ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      p.price != null
+                                          ? '${_formatPrice(p.price!)} ₸'
+                                          : '—',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
                   );
