@@ -314,22 +314,24 @@ class _PaywallPageState extends State<PaywallPage> {
         title: const Text('Подписка'),
         elevation: 0,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _requiresLogin
-              ? _buildRequiresLogin()
-              : _alreadyActive
-                  ? _buildAlreadyActive()
-                  : _error != null
-                      ? _ErrorView(message: _error!, onRetry: _load)
-                      : _plans.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'Тарифы временно недоступны.',
-                                style: TextStyle(color: Colors.black54),
-                              ),
-                            )
-                          : _buildContent(),
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _requiresLogin
+                ? _buildRequiresLogin()
+                : _alreadyActive
+                    ? _buildAlreadyActive()
+                    : _error != null
+                        ? _ErrorView(message: _error!, onRetry: _load)
+                        : _plans.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'Тарифы временно недоступны.',
+                                  style: TextStyle(color: Colors.black54),
+                                ),
+                              )
+                            : _buildContent(),
+      ),
     );
   }
 
