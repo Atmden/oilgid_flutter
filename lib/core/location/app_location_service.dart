@@ -36,7 +36,7 @@ class AppLocationService {
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
-      );
+      ).timeout(const Duration(seconds: 10));
       _position = position;
       return position;
     } catch (_) {

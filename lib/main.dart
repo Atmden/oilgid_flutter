@@ -286,12 +286,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _privacyAccepted = widget.privacyAccepted;
     if (_privacyAccepted) {
-      unawaited(AppLocationService.instance.ensureLocation());
-      unawaited(
-        PushNotificationService.instance.init(
-          onNotificationUrl: _onIncomingUri,
-        ),
-      );
+      unawaited(_requestStartupPermissions());
     }
     _deepLinkController = DeepLinkController(onUri: _onIncomingUri);
     unawaited(_deepLinkController.start());
@@ -308,6 +303,17 @@ class _MyAppState extends State<MyApp> {
     _unauthorizedSub?.cancel();
     unawaited(_deepLinkController.dispose());
     super.dispose();
+  }
+
+  /// Запрашивает разрешения последовательно, а не параллельно — Android
+  /// показывает только один системный permission-диалог за раз, и при двух
+  /// одновременных requestPermission() из разных плагинов второй запрос
+  /// молча получает отказ без показа диалога.
+  Future<void> _requestStartupPermissions() async {
+    await AppLocationService.instance.ensureLocation();
+    await PushNotificationService.instance.init(
+      onNotificationUrl: _onIncomingUri,
+    );
   }
 
   void _onIncomingUri(Uri uri) {
@@ -345,10 +351,7 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _privacyAccepted = true;
     });
-    unawaited(AppLocationService.instance.ensureLocation());
-    unawaited(
-      PushNotificationService.instance.init(onNotificationUrl: _onIncomingUri),
-    );
+    unawaited(_requestStartupPermissions());
     final nav = _navigatorKey.currentState;
     if (nav == null) return;
     // Убираем TermOfUse из стека
