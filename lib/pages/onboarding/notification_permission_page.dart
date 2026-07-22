@@ -40,7 +40,6 @@ class _NotificationPermissionPageState
           'новых поступлениях масел и статусе ваших заказов.',
       isLoading: _requesting,
       onAllow: _requestPermission,
-      onSkip: widget.onDone,
     );
   }
 }

@@ -8,7 +8,6 @@ class PermissionIntroScaffold extends StatelessWidget {
     required this.title,
     required this.description,
     required this.onAllow,
-    required this.onSkip,
     this.isLoading = false,
   });
 
@@ -16,7 +15,6 @@ class PermissionIntroScaffold extends StatelessWidget {
   final String title;
   final String description;
   final VoidCallback onAllow;
-  final VoidCallback onSkip;
   final bool isLoading;
 
   @override
@@ -56,13 +54,8 @@ class PermissionIntroScaffold extends StatelessWidget {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Разрешить'),
+                      : const Text('Продолжить'),
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: isLoading ? null : onSkip,
-                child: const Text('Не сейчас'),
               ),
             ],
           ),

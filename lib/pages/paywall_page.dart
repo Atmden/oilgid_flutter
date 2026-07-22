@@ -196,9 +196,7 @@ class _PaywallPageState extends State<PaywallPage> {
     await _api.validatePurchase(
       platform: plan.platformKey,
       productId: purchase.productID,
-      transactionId: Platform.isIOS
-          ? purchase.verificationData.serverVerificationData
-          : null,
+      transactionId: Platform.isIOS ? purchase.purchaseID : null,
       purchaseToken: Platform.isAndroid
           ? purchase.verificationData.serverVerificationData
           : null,

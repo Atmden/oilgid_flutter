@@ -32,7 +32,6 @@ class _LocationPermissionPageState extends State<LocationPermissionPage> {
           'магазины по расстоянию и показать ближайшие к вам.',
       isLoading: _requesting,
       onAllow: _requestPermission,
-      onSkip: widget.onDone,
     );
   }
 }
