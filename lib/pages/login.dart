@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
     if (_returnToCaller) {
       Navigator.pop(context);
     } else {
-      _navigateAfterLogin();
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     }
   }
 
