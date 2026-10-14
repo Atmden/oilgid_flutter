@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -62,6 +64,18 @@ Future<void> showPushNotification(
             : [DarwinNotificationAttachment(imagePath)],
       ),
     ),
-    payload: message.data['url'] as String?,
+    payload: jsonEncode(message.data),
   );
+}
+
+/// Разбирает payload локального уведомления обратно в data-поля push.
+/// Старые уведомления (до истории уведомлений) хранили в payload просто url.
+Map<String, dynamic> decodePushPayload(String payload) {
+  try {
+    final decoded = jsonDecode(payload);
+    if (decoded is Map<String, dynamic>) return decoded;
+  } catch (_) {
+    // не JSON — это url
+  }
+  return {'url': payload};
 }
