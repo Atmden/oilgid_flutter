@@ -9,6 +9,7 @@ import '../../features/car_configurations/data/datasources/car_configuration_api
 import '../../features/car_modifications/data/datasources/car_modification_api.dart';
 import '../../features/garage/data/datasources/expense_category_api.dart';
 import '../../features/garage/data/datasources/garage_api.dart';
+import '../../features/notifications/data/datasources/notification_api.dart';
 import '../../features/oils/data/datasources/oil_api.dart';
 import '../../features/shops/data/datasource/shop_model_api.dart';
 import '../../features/subscription/data/datasources/subscription_datasource.dart';
@@ -44,6 +45,7 @@ class AppApi {
   late final GarageApi garageApi = GarageApi(_dio);
   late final ExpenseCategoryApi expenseCategoryApi = ExpenseCategoryApi(_dio);
   late final SubscriptionDatasource subscriptionApi = SubscriptionDatasource(_dio);
+  late final NotificationApi notificationApi = NotificationApi(_dio);
 
   Future<Map<String, dynamic>> getConfig() async {
     final response = await _dio.get(Endpoints.appConfig);

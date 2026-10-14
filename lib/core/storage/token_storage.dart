@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -13,8 +14,18 @@ class TokenStorage {
 
   final _storage = const FlutterSecureStorage();
 
+  // Срабатывает при входе и выходе пользователя (сохранение/удаление токена).
+  static final StreamController<void> onUserChanged =
+      StreamController<void>.broadcast();
+
   Future<void> saveUserToken(String token) async {
     await _storage.write(key: _userTokenKey, value: token);
+    onUserChanged.add(null);
+  }
+
+  Future<bool> isLoggedIn() async {
+    final token = await getUserToken();
+    return token != null && token.trim().isNotEmpty;
   }
 
   Future<void> saveAppToken(String token) async {
@@ -32,6 +43,7 @@ class TokenStorage {
   Future<void> clearUser() async {
     await _storage.delete(key: _userTokenKey);
     await _storage.delete(key: _userProfileKey);
+    onUserChanged.add(null);
   }
 
   Future<void> savePasswordHash(String hash) async {
@@ -103,5 +115,6 @@ class TokenStorage {
     await _storage.delete(key: _phoneRegistrationCompletedKey);
     await _storage.delete(key: _userTokenKey);
     await _storage.delete(key: _userProfileKey);
+    onUserChanged.add(null);
   }
 }

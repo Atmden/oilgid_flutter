@@ -18,17 +18,30 @@ class OpenOilDeepLink extends DeepLinkAction {
   const OpenOilDeepLink(this.oilId);
 }
 
+class OpenNotificationsDeepLink extends DeepLinkAction {
+  const OpenNotificationsDeepLink();
+}
+
 class DeepLinkParser {
   static const _allowedHosts = {'oilgid.kz', 'www.oilgid.kz'};
+
+  /// Ссылка на экран истории уведомлений — её же открывает тап по push без url.
+  static final notificationsUri = Uri.parse('https://oilgid.kz/app/notifications');
 
   static DeepLinkAction parse(Uri uri) {
     if (uri.scheme != 'https') return const IgnoreDeepLink();
     if (!_allowedHosts.contains(uri.host)) return const IgnoreDeepLink();
 
-    final segments = uri.pathSegments;
-    // Ожидаем /app/shop/:shopId
-    if (segments.length < 3) return const IgnoreDeepLink();
+    // Ожидаем /app/notifications, /app/shop/:shopId, /app/oil/:oilId
+    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    if (segments.length < 2) return const IgnoreDeepLink();
     if (segments[0] != 'app') return const IgnoreDeepLink();
+
+    if (segments[1] == 'notifications') {
+      return const OpenNotificationsDeepLink();
+    }
+
+    if (segments.length < 3) return const IgnoreDeepLink();
 
     if (segments[1] == 'shop') {
       final shopId = int.tryParse(segments[2]);

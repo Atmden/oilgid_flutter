@@ -5,14 +5,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:oil_gid/core/api/app_api.dart';
+import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
 import 'package:oil_gid/core/location/app_location_service.dart';
+import 'package:oil_gid/core/notifications/notification_inbox_events.dart';
 import 'package:oil_gid/core/notifications/push_channel.dart';
 import 'package:oil_gid/core/notifications/push_message_display.dart';
+import 'package:oil_gid/core/storage/token_storage.dart';
 
 /// Инициализирует push-уведомления (FCM) один раз за время жизни приложения:
 /// запрашивает разрешение, регистрирует токен устройства на бэкенде и
 /// маршрутизирует тапы по уведомлениям через переданный [onNotificationUrl]
 /// (см. вызов из MyApp._onIncomingUri, который уже умеет открывать диплинки).
+/// Push без url открывает экран истории (DeepLinkParser.notificationsUri).
 class PushNotificationService {
   PushNotificationService._();
 
@@ -132,8 +136,7 @@ class PushNotificationService {
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
         if (payload == null) return;
-        final uri = Uri.tryParse(payload);
-        if (uri != null) _onNotificationUrl?.call(uri);
+        _handleTap(decodePushPayload(payload));
       },
     );
 
@@ -145,14 +148,48 @@ class PushNotificationService {
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
+    // Запись в историю бэкенд создаёт фоновой задачей, обычно за доли
+    // секунды после отправки push, — даём ей время, прежде чем обновлять
+    // бейдж и открытый экран истории.
+    Future.delayed(
+      const Duration(seconds: 2),
+      NotificationInboxEvents.notifyChanged,
+    );
     await showPushNotification(_localNotifications, message, alwaysShow: true);
   }
 
-  void _handleMessageTap(RemoteMessage message) {
-    final url = message.data['url'];
-    if (url is! String) return;
-    final uri = Uri.tryParse(url);
+  void _handleMessageTap(RemoteMessage message) => _handleTap(message.data);
+
+  /// Тап по push: отмечаем уведомление прочитанным в истории и открываем его
+  /// url, а если url нет — экран истории уведомлений.
+  void _handleTap(Map<String, dynamic> data) {
+    unawaited(_markTappedRead(data));
+
+    final url = data['url'];
+    final uri = url is String && url.trim().isNotEmpty
+        ? Uri.tryParse(url.trim())
+        : DeepLinkParser.notificationsUri;
     if (uri != null) _onNotificationUrl?.call(uri);
+  }
+
+  Future<void> _markTappedRead(Map<String, dynamic> data) async {
+    // Истории у анонимного устройства нет — API ответит 403.
+    if (!await TokenStorage().isLoggedIn()) return;
+    try {
+      final api = _appApi.notificationApi;
+      final notificationId = data['notification_id']?.toString();
+      final pushLogId = int.tryParse(data['push_log_id']?.toString() ?? '');
+      if (notificationId != null && notificationId.isNotEmpty) {
+        await api.markRead(notificationId);
+      } else if (pushLogId != null) {
+        await api.markReadByPush(pushLogId);
+      } else {
+        return;
+      }
+      NotificationInboxEvents.notifyChanged();
+    } catch (e) {
+      debugPrint('PUSH: mark tapped notification read failed: $e');
+    }
   }
 
   String get _platformName =>

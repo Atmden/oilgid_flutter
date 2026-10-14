@@ -26,8 +26,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'dart:async';
 import 'package:oil_gid/core/api/dio_client.dart';
 import 'package:oil_gid/core/deeplink/deep_link_controller.dart';
-import 'package:oil_gid/core/deeplink/deep_link_parser.dart';
-import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
+import 'package:oil_gid/core/deeplink/deep_link_navigator.dart';
+import 'package:oil_gid/pages/notifications_page.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:cached_query/cached_query.dart';
 import 'package:oil_gid/pages/add_car_request_page.dart';
@@ -328,20 +328,8 @@ class _MyAppState extends State<MyApp> {
 
   void _openDeepLink(Uri uri) {
     try {
-      final action = DeepLinkParser.parse(uri);
-      if (action is OpenShopDeepLink) {
-        _navigatorKey.currentState?.pushNamed(
-          '/shop',
-          arguments: ShopPageInput.fromId(action.shopId),
-        );
-      }
-
-      if (action is OpenOilDeepLink) {
-        _navigatorKey.currentState?.pushNamed(
-          '/oil_details',
-          arguments: OilDetailsInput.fromId(action.oilId),
-        );
-      }
+      final navigator = _navigatorKey.currentState;
+      if (navigator != null) openDeepLink(navigator, uri);
     } catch (e) {
       debugPrint('Failed to open deep link $uri: $e');
     }
@@ -447,6 +435,7 @@ class _MyAppState extends State<MyApp> {
         '/garage/expense-categories': (context) =>
             const ExpenseCategoriesPage(),
         '/paywall': (context) => const PaywallPage(),
+        '/notifications': (context) => const NotificationsPage(),
       },
     );
   }

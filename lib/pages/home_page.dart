@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oil_gid/includes/NavigationDrawer.dart';
 import 'package:oil_gid/includes/car_info_card.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
+import 'package:oil_gid/includes/notification_bell.dart';
 import 'package:oil_gid/includes/oil_catalog_card.dart';
 import 'package:oil_gid/includes/shops_catalog_card.dart';
 import 'package:oil_gid/includes/add_car_request_card.dart';
@@ -19,7 +20,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Navigationdrawer(),
-      appBar: MainAppBar(title: 'OIL ГИД'),
+      appBar: MainAppBar(
+        title: 'OIL ГИД',
+        actions: const [NotificationBell()],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

@@ -78,4 +78,13 @@ class Endpoints {
 
   // push notifications
   static const deviceTokens = '/device-tokens';
+
+  // notification history
+  static const notifications = '/notifications';
+  static const notification = '/notifications/{id}';
+  static const notificationsUnreadCount = '/notifications/unread-count';
+  static const notificationRead = '/notifications/{id}/read';
+  static const notificationsReadAll = '/notifications/read-all';
+  static const notificationsReadByPush =
+      '/notifications/read-by-push/{push_log_id}';
 }
