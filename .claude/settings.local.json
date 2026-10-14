@@ -47,7 +47,12 @@
       "Bash(git -C /Users/mgggai/oilgid_flutter add ios/NotificationServiceExtension/Info.plist ios/NotificationServiceExtension/NotificationService.swift ios/Podfile ios/Podfile.lock ios/Runner.xcodeproj/project.pbxproj ios/Runner/AppDelegate.swift ios/Runner/Runner.entitlements lib/core/notifications/push_notification_service.dart lib/core/startup/startup_controller.dart)",
       "Bash(git -C /Users/mgggai/oilgid_flutter commit -m ' *)",
       "Read(//Users/mgggai/.appstoreconnect/**)",
-      "Read(//Users/mgggai/**)"
+      "Read(//Users/mgggai/**)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(flutter pub *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "/tmp"
