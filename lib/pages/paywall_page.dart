@@ -55,7 +55,7 @@ class _PaywallPageState extends State<PaywallPage> {
 
   void _startPurchaseTimeout() {
     _purchaseTimeoutTimer?.cancel();
-    _purchaseTimeoutTimer = Timer(const Duration(seconds: 30), () {
+    _purchaseTimeoutTimer = Timer(const Duration(seconds: 90), () {
       if (!mounted || !_purchasing) return;
       setState(() => _purchasing = false);
       _showError('Магазин не ответил. Попробуйте позже.');
@@ -142,23 +142,43 @@ class _PaywallPageState extends State<PaywallPage> {
   Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
       if (purchase.status == PurchaseStatus.pending) {
-        if (mounted) setState(() => _purchasing = true);
+        if (mounted) {
+          setState(() => _purchasing = true);
+          // Таймер стартует только когда Apple подтвердила начало обработки,
+          // не при нажатии кнопки — иначе время ввода аккаунта съедает лимит
+          _startPurchaseTimeout();
+        }
         continue;
       }
 
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
         _stopPurchaseTimeout();
+
+        // Валидируем на бэке
+        String? validationError;
         try {
           await _validateWithBackend(purchase);
-          await InAppPurchase.instance.completePurchase(purchase);
-          if (!mounted) return;
-          setState(() => _purchasing = false);
-          _onSuccess(purchase.status == PurchaseStatus.restored);
         } catch (e) {
-          if (!mounted) return;
-          setState(() => _purchasing = false);
-          _showError(e.toString().replaceFirst('Exception: ', ''));
+          validationError = e.toString().replaceFirst('Exception: ', '');
+        }
+
+        // completePurchase вызываем ВСЕГДА — иначе StoreKit будет
+        // бесконечно доставлять эту транзакцию при каждом запуске
+        try {
+          await InAppPurchase.instance.completePurchase(purchase);
+        } catch (_) {}
+
+        if (!mounted) return;
+        setState(() => _purchasing = false);
+
+        if (validationError == null) {
+          _onSuccess(purchase.status == PurchaseStatus.restored);
+        } else {
+          _showError(
+            'Покупка прошла, но не удалось активировать подписку. '
+            'Нажмите «Восстановить покупку» через минуту.',
+          );
         }
         continue;
       }
@@ -196,9 +216,7 @@ class _PaywallPageState extends State<PaywallPage> {
     await _api.validatePurchase(
       platform: plan.platformKey,
       productId: purchase.productID,
-      transactionId: Platform.isIOS
-          ? purchase.verificationData.serverVerificationData
-          : null,
+      transactionId: Platform.isIOS ? purchase.purchaseID : null,
       purchaseToken: Platform.isAndroid
           ? purchase.verificationData.serverVerificationData
           : null,
@@ -255,7 +273,6 @@ class _PaywallPageState extends State<PaywallPage> {
     }
 
     setState(() => _purchasing = true);
-    _startPurchaseTimeout();
     try {
       await InAppPurchase.instance.buyNonConsumable(
         purchaseParam: PurchaseParam(productDetails: storeProduct),

@@ -289,8 +289,7 @@ class _LoginPageState extends State<LoginPage> {
         setState(() {
           _loginPhoneController.text = _phoneController.text;
           _step = _AuthStep.passwordLogin;
-          _errorMessage =
-              'Пользователь с таким номером уже существует. Войдите по паролю.';
+          _errorMessage = null;
         });
         return;
       }
