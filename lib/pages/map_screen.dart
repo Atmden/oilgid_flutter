@@ -49,6 +49,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   AppLatLong? _userLocation;
   BitmapDescriptor? _userLocationIcon;
 
+  // Кластеры добавляем только после onMapCreated: если передать их сразу,
+  // нативный yandex_mapkit (iOS) вызывает onClusterAdded раньше, чем
+  // Dart-контроллер повесит обработчик канала, получает
+  // FlutterMethodNotImplemented и падает на `result as! [String: Any]`.
+  bool _mapReady = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,42 +68,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       appBar: AppBar(title: const Text('Карта')),
       body: YandexMap(
         mapObjects: [
-          ClusterizedPlacemarkCollection(
-            mapId: const MapObjectId('shops_cluster'),
-            radius: _clusterRadius,
-            minZoom: _clusterMinZoom,
-            placemarks: widget.shops
-                .where((shop) => shop.lat != null && shop.lng != null)
-                .map(
-                  (shop) => PlacemarkMapObject(
-                    mapId: MapObjectId('shop_${shop.id}'),
-                    point: Point(latitude: shop.lat!, longitude: shop.lng!),
-                    opacity: 1,
-                    onTap: (_, __) => _showShopBottomSheet(shop),
-                    icon: PlacemarkIcon.single(
-                      PlacemarkIconStyle(
-                        image: BitmapDescriptor.fromAssetImage(
-                          'assets/marker.png',
+          if (_mapReady)
+            ClusterizedPlacemarkCollection(
+              mapId: const MapObjectId('shops_cluster'),
+              radius: _clusterRadius,
+              minZoom: _clusterMinZoom,
+              placemarks: widget.shops
+                  .where((shop) => shop.lat != null && shop.lng != null)
+                  .map(
+                    (shop) => PlacemarkMapObject(
+                      mapId: MapObjectId('shop_${shop.id}'),
+                      point: Point(latitude: shop.lat!, longitude: shop.lng!),
+                      opacity: 1,
+                      onTap: (_, __) => _showShopBottomSheet(shop),
+                      icon: PlacemarkIcon.single(
+                        PlacemarkIconStyle(
+                          image: BitmapDescriptor.fromAssetImage(
+                            'assets/marker.png',
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                )
-                .toList(),
-            onClusterAdded: (self, cluster) async {
-              final icon = await _getClusterIcon(cluster.size);
-              return cluster.copyWith(
-                appearance: cluster.appearance.copyWith(
-                  icon: PlacemarkIcon.single(
-                    PlacemarkIconStyle(
-                      anchor: const Offset(0.5, 0.5),
-                      image: icon,
+                  )
+                  .toList(),
+              onClusterAdded: (self, cluster) async {
+                final icon = await _getClusterIcon(cluster.size);
+                return cluster.copyWith(
+                  appearance: cluster.appearance.copyWith(
+                    icon: PlacemarkIcon.single(
+                      PlacemarkIconStyle(
+                        anchor: const Offset(0.5, 0.5),
+                        image: icon,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
           if (_userLocation != null && _userLocationIcon != null)
             PlacemarkMapObject(
               mapId: const MapObjectId('user_location'),
@@ -119,6 +126,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ],
         onMapCreated: (controller) {
           mapControllerCompleter.complete(controller);
+          if (mounted) setState(() => _mapReady = true);
         },
       ),
     );
