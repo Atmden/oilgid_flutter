@@ -50,6 +50,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+dependency_overrides:
+  # Копия yandex_mapkit 4.2.1 с патчем iOS-краша onClusterAdded
+  # (см. packages/yandex_mapkit/OILGID_PATCH.md).
+  yandex_mapkit:
+    path: packages/yandex_mapkit
+
 flutter:
   uses-material-design: true
   assets:

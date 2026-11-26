@@ -1,1 +1,6 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # Вендорная копия плагина (packages/yandex_mapkit/OILGID_PATCH.md)
+    - packages/**
