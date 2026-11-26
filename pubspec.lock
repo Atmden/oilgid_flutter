@@ -1688,10 +1688,9 @@ packages:
   yandex_mapkit:
     dependency: "direct main"
     description:
-      name: yandex_mapkit
-      sha256: "30a6f7e1d99871338071425a389c53491018602ee24be16e9cf63e640d57dda1"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/yandex_mapkit"
+      relative: true
+    source: path
     version: "4.2.1"
 sdks:
   dart: ">=3.10.3 <4.0.0"
