@@ -116,7 +116,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
         oilId: item.id,
         lat: value?.latitude,
         lng: value?.longitude,
-        radiusKm: 150,
       );
     });
   }

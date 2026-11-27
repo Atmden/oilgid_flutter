@@ -8,7 +8,6 @@ abstract class ShopRepository {
     required int oilId,
     double? lat,
     double? lng,
-    int? radiusKm,
   });
 
   Future<List<OilItem>> getShopProducts({required int shopId});

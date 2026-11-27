@@ -16,13 +16,11 @@ class ShopRepositoryImpl implements ShopRepository {
     required int oilId,
     double? lat,
     double? lng,
-    int? radiusKm,
   }) {
     return api.getShopsMarkers(
       oilId: oilId,
       lat: lat,
       lng: lng,
-      radiusKm: radiusKm,
     );
   }
 

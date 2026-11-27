@@ -15,12 +15,10 @@ class ShopModelApi {
     required int oilId,
     double? lat,
     double? lng,
-    int? radiusKm,
   }) async {
     final query = <String, dynamic>{};
     if (lat != null) query['lat'] = lat;
     if (lng != null) query['lng'] = lng;
-    if (radiusKm != null) query['radius_km'] = radiusKm;
 
     final response = await dio.get(
       Endpoints.oilShopsMarkers.replaceAll('{oil_id}', oilId.toString()),
