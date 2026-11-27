@@ -5,12 +5,15 @@ class SubscriptionStatusModel extends SubscriptionStatus {
     required super.isActive,
     super.expiresAt,
     required super.entitlements,
+    super.subscriptionsEnabled,
   });
 
   factory SubscriptionStatusModel.fromJson(Map<String, dynamic> json) {
     // Структура: { subscription: { status, expires_at, ... }, entitlements: [...] }
     final subJson = json['subscription'];
     final rawEntitlements = json['entitlements'];
+    // Старый бэкенд флаг не отдаёт — считаем, что подписка продаётся.
+    final rawEnabled = json['subscriptions_enabled'];
 
     bool isActive = false;
     DateTime? expiresAt;
@@ -27,6 +30,7 @@ class SubscriptionStatusModel extends SubscriptionStatus {
       entitlements: rawEntitlements is List
           ? rawEntitlements.whereType<String>().toList()
           : [],
+      subscriptionsEnabled: rawEnabled is bool ? rawEnabled : true,
     );
   }
 }

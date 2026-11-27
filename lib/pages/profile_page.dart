@@ -359,6 +359,14 @@ class _ProfilePageState extends State<ProfilePage> {
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
+  /// Блок подписки показываем, только если подписка продаётся, либо у
+  /// пользователя ещё действует купленная (чтобы мог ею управлять).
+  bool get _showSubscriptionSection {
+    final sub = _subscription;
+    if (sub == null) return false;
+    return sub.subscriptionsEnabled || sub.isActive;
+  }
+
   Widget _buildSubscriptionSection() {
     final sub = _subscription;
     final isActive = sub?.isActive == true;
@@ -626,8 +634,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     value: _profile!['created_at'],
                   ),
                 ],
-                const SizedBox(height: 24),
-                _buildSubscriptionSection(),
+                if (_showSubscriptionSection) ...[
+                  const SizedBox(height: 24),
+                  _buildSubscriptionSection(),
+                ],
                 const SizedBox(height: 8),
               ],
             ),

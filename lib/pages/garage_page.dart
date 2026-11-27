@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:oil_gid/core/api/app_api.dart';
-import 'package:oil_gid/core/api/subscription_api.dart';
 import 'package:oil_gid/features/garage/domain/entities/user_car.dart';
 import 'package:oil_gid/features/garage/presentation/garage_route_args.dart';
 import 'package:oil_gid/includes/main_app_bar.dart';
@@ -16,10 +15,11 @@ class GaragePage extends StatefulWidget {
 
 class _GaragePageState extends State<GaragePage> {
   final _garageApi = AppApi().garageApi;
-  final _subscriptionApi = SubscriptionApi();
+  final _subscriptionApi = AppApi().subscriptionApi;
 
   bool _isLoading = true;
   bool? _hasAccess;
+  bool _subscriptionsEnabled = true;
   List<UserCar> _cars = [];
   String? _error;
 
@@ -35,11 +35,12 @@ class _GaragePageState extends State<GaragePage> {
       _error = null;
     });
     try {
-      final hasAccess = await _subscriptionApi.hasEntitlement('garage_book');
+      final status = await _subscriptionApi.getStatus();
       if (!mounted) return;
-      if (!hasAccess) {
+      if (!status.hasEntitlement('garage_book')) {
         setState(() {
           _hasAccess = false;
+          _subscriptionsEnabled = status.subscriptionsEnabled;
           _isLoading = false;
         });
         return;
@@ -130,31 +131,37 @@ class _GaragePageState extends State<GaragePage> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Функция «Гараж» доступна по подписке. Оформите подписку, чтобы хранить историю обслуживания своих автомобилей.',
+              Text(
+                _subscriptionsEnabled
+                    ? 'Функция «Гараж» доступна по подписке. Оформите подписку, чтобы хранить историю обслуживания своих автомобилей.'
+                    : 'Гараж временно недоступен. Попробуйте позже.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54),
+                style: const TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/paywall')
-                    .then((_) => _load()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 14,
+              // Подписка не продаётся — вместо покупки предлагаем повторить.
+              if (!_subscriptionsEnabled)
+                ElevatedButton(onPressed: _load, child: const Text('Повторить'))
+              else
+                ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/paywall')
+                      .then((_) => _load()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  child: const Text(
+                    'Оформить подписку',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
-                child: const Text(
-                  'Оформить подписку',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-              ),
             ],
           ),
         ),
