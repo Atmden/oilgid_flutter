@@ -1,6 +1,7 @@
 import '../../domain/entities/shop.dart';
 import '../../domain/entities/shop_catalog_result.dart';
 import '../../domain/entities/shop_details.dart';
+import '../../domain/entities/shop_product_group.dart';
 import '../../../oils/domain/entities/oil_item.dart';
 import '../../domain/repositories/shop_repository.dart';
 import '../datasource/shop_model_api.dart';
@@ -17,21 +18,43 @@ class ShopRepositoryImpl implements ShopRepository {
     double? lat,
     double? lng,
   }) {
-    return api.getShopsMarkers(
-      oilId: oilId,
-      lat: lat,
-      lng: lng,
+    return api.getShopsMarkers(oilId: oilId, lat: lat, lng: lng);
+  }
+
+  @override
+  Future<List<OilItem>> getShopProducts({
+    required int shopId,
+    int? brandId,
+    String? viscosityId,
+    String? search,
+  }) {
+    return api.getShopProducts(
+      shopId: shopId,
+      brandId: brandId,
+      viscosityId: viscosityId,
+      search: search,
     );
   }
 
   @override
-  Future<List<OilItem>> getShopProducts({required int shopId}) {
-    return api.getShopProducts(shopId: shopId);
+  Future<List<ShopProductGroup>> getShopProductGroups({
+    required int shopId,
+    required ShopProductGrouping by,
+    String? search,
+  }) {
+    return api.getShopProductGroups(
+      shopId: shopId,
+      by: by.apiValue,
+      search: search,
+    );
   }
 
   @override
   Future<ShopDetails> getShopDetails({required int shopId}) async {
-    final query = Query(key: "shop_details_$shopId", queryFn: () => api.getShopDetails(shopId: shopId));
+    final query = Query(
+      key: "shop_details_$shopId",
+      queryFn: () => api.getShopDetails(shopId: shopId),
+    );
     final queryState = await query.fetch();
     return queryState.data!;
   }

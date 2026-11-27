@@ -48,6 +48,9 @@ class Endpoints {
   // shop products
   static const shopProducts = '/shops/{shop_id}/products';
 
+  // shop product groups (by brand / viscosity)
+  static const shopProductGroups = '/shops/{shop_id}/product-groups';
+
   // shop details
   static const shopDetails = '/shops/{shop_id}';
 

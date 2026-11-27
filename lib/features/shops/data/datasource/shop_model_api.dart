@@ -5,6 +5,7 @@ import '../../../oils/data/models/oil_item_model.dart';
 import '../models/shop_model.dart';
 import '../models/shop_catalog_result_model.dart';
 import '../models/shop_details_model.dart';
+import '../models/shop_product_group_model.dart';
 
 class ShopModelApi {
   final Dio dio;
@@ -33,15 +34,55 @@ class ShopModelApi {
         .toList();
   }
 
-  Future<List<OilItem>> getShopProducts({required int shopId}) async {
+  /// [viscosityId] — id вязкости или 'none' для товаров без вязкости.
+  Future<List<OilItem>> getShopProducts({
+    required int shopId,
+    int? brandId,
+    String? viscosityId,
+    String? search,
+  }) async {
+    final query = <String, dynamic>{};
+    if (brandId != null) query['brand_id'] = brandId;
+    if (viscosityId != null) query['viscosity_id'] = viscosityId;
+    final normalizedSearch = search?.trim();
+    if (normalizedSearch != null && normalizedSearch.isNotEmpty) {
+      query['search'] = normalizedSearch;
+    }
+
     final response = await dio.get(
       Endpoints.shopProducts.replaceAll('{shop_id}', shopId.toString()),
+      queryParameters: query.isEmpty ? null : query,
     );
 
     final data = response.data['data'] as List<dynamic>? ?? [];
     return data
         .whereType<Map<String, dynamic>>()
         .map<OilItem>(OilItemModel.fromJson)
+        .toList();
+  }
+
+  /// [by] — 'brand' или 'viscosity'.
+  Future<List<ShopProductGroupModel>> getShopProductGroups({
+    required int shopId,
+    required String by,
+    String? search,
+  }) async {
+    final query = <String, dynamic>{'by': by};
+    final normalizedSearch = search?.trim();
+    if (normalizedSearch != null && normalizedSearch.isNotEmpty) {
+      query['search'] = normalizedSearch;
+    }
+
+    final response = await dio.get(
+      Endpoints.shopProductGroups.replaceAll('{shop_id}', shopId.toString()),
+      queryParameters: query,
+    );
+
+    final data = response.data is Map ? response.data['data'] : null;
+    final List<dynamic> normalized = data is List ? data : const [];
+    return normalized
+        .whereType<Map<String, dynamic>>()
+        .map(ShopProductGroupModel.fromJson)
         .toList();
   }
 
