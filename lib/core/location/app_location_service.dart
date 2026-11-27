@@ -32,17 +32,32 @@ class AppLocationService {
         return null;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      ).timeout(const Duration(seconds: 10));
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
+        ).timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Нет свежего фикса (таймаут, помещение) — берём последнюю известную
+        // позицию, чтобы магазины всё равно шли от ближнего к дальнему.
+        position = await _lastKnownPosition();
+      }
       _position = position;
       return position;
     } catch (_) {
       return null;
     } finally {
       _pendingFetch = null;
+    }
+  }
+
+  Future<Position?> _lastKnownPosition() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } catch (_) {
+      return null;
     }
   }
 }

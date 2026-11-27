@@ -8,7 +8,7 @@ import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/country_flag.dart';
 import 'package:oil_gid/themes/app_colors.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:oil_gid/core/location/app_location_service.dart';
 import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.dart';
 import 'package:oil_gid/features/shops/presentation/widgets/shop_list.dart';
 import 'package:oil_gid/features/oils/presentation/widgets/oil_gallery.dart';
@@ -109,7 +109,7 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
   }
 
   Future<void> _loadShopsForItem(OilItem item) async {
-    final value = await _loadUserLocation();
+    final value = await AppLocationService.instance.ensureLocation();
     if (!mounted) return;
     setState(() {
       _shopsFuture = _shopRepository.getShopsMarkers(
@@ -118,29 +118,6 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
         lng: value?.longitude,
       );
     });
-  }
-
-  Future<Position?> _loadUserLocation() async {
-    try {
-      final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) return null;
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return null;
-      }
-
-      return Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-    } catch (e) {
-      debugPrint('Failed to load user location: $e');
-      return null;
-    }
   }
 
   @override
