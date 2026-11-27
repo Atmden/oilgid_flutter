@@ -74,12 +74,19 @@ class CatalogFilterOption {
 class CatalogFacetOption extends CatalogFilterOption {
   final int count;
   final bool selected;
+  // Только для фасета country.
+  final String? iso2;
+  final String? flagUrl;
+  final String? flagEmoji;
 
   CatalogFacetOption({
     required super.id,
     required super.title,
     required this.count,
     required this.selected,
+    this.iso2,
+    this.flagUrl,
+    this.flagEmoji,
   });
 
   static List<CatalogFacetOption> fromJsonList(dynamic data) {
@@ -92,6 +99,10 @@ class CatalogFacetOption extends CatalogFilterOption {
             title: json['title'] is String ? json['title'] as String : '',
             count: json['count'] is int ? json['count'] as int : 0,
             selected: json['selected'] == true,
+            iso2: json['iso2'] is String ? json['iso2'] as String : null,
+            flagUrl: json['flag_url'] is String ? json['flag_url'] as String : null,
+            flagEmoji:
+                json['flag_emoji'] is String ? json['flag_emoji'] as String : null,
           ),
         )
         .where((e) => e.id != 0)
@@ -141,6 +152,7 @@ class OilApi {
 
   static const List<String> defaultFacetKeys = [
     'brand',
+    'country',
     'viscosity',
     'api',
     'acea',

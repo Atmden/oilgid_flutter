@@ -6,6 +6,7 @@ import 'package:oil_gid/features/shops/presentation/online_shop_details_route_ar
 import 'package:oil_gid/features/shops/presentation/shop_route_args.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
+import 'package:oil_gid/features/oils/presentation/widgets/country_flag.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:oil_gid/features/shops/data/repositories/shop_repository_impl.dart';
@@ -256,6 +257,13 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InfoRow(label: 'Бренд', value: item.brandTitle),
+                  if (item.brand?.countries.isNotEmpty ?? false)
+                    InfoRow(
+                      label: 'Страна',
+                      value: item.brand!.countries
+                          .map((c) => '${c.flagEmoji} ${c.title}'.trim())
+                          .join(', '),
+                    ),
                   InfoRow(
                     label: 'Вязкость/Тип масла',
                     value: item.viscosityTitle,
@@ -481,6 +489,15 @@ class _OilDetailsPageState extends State<OilDetailsPage> {
                             textAlign: TextAlign.justify,
                           ),
                         ),
+                        for (final country in item.brand!.countries)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: CountryFlag(
+                              flagUrl: country.flagUrl,
+                              flagEmoji: country.flagEmoji,
+                              height: 18,
+                            ),
+                          ),
                       ],
                     ),
                     if (item.brand!.description.isNotEmpty)

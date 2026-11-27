@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/oils/data/datasources/oil_api.dart';
+import 'package:oil_gid/features/oils/presentation/widgets/country_flag.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 
 class OilCatalogFiltersPage extends StatefulWidget {
@@ -26,6 +27,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
   static const int _expandAnimationMs = 240;
   static const Map<String, String> _facetTitleMap = {
     'brand': 'Бренд',
+    'country': 'Страна',
     'viscosity': 'Вязкость/Тип масла',
     'api': 'API',
     'acea': 'ACEA',
@@ -617,7 +619,7 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
                             : (_) => _toggleFacetOption(facetKey, opt.id),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(opt.title),
+                    title: _buildOptionTitle(opt),
                     secondary:
                         isPending
                             ? const SizedBox(
@@ -662,6 +664,20 @@ class _OilCatalogFiltersPageState extends State<OilCatalogFiltersPage> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildOptionTitle(CatalogFacetOption opt) {
+    final hasFlag =
+        (opt.flagUrl?.isNotEmpty ?? false) || (opt.flagEmoji?.isNotEmpty ?? false);
+    if (!hasFlag) return Text(opt.title);
+
+    return Row(
+      children: [
+        CountryFlag(flagUrl: opt.flagUrl ?? '', flagEmoji: opt.flagEmoji ?? ''),
+        const SizedBox(width: 8),
+        Expanded(child: Text(opt.title)),
+      ],
     );
   }
 

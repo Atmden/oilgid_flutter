@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oil_gid/core/api/app_api.dart';
 import 'package:oil_gid/features/oils/data/datasources/oil_api.dart';
+import 'package:oil_gid/features/oils/domain/entities/oil_country.dart';
 import 'package:oil_gid/features/oils/domain/entities/oil_item.dart';
 import 'package:oil_gid/features/oils/presentation/oil_route_args.dart';
 import 'package:oil_gid/features/oils/presentation/providers/oil_provider.dart';
+import 'package:oil_gid/features/oils/presentation/widgets/country_flag.dart';
 import 'package:oil_gid/pages/oil_catalog_filters_page.dart';
 import 'package:oil_gid/themes/app_colors.dart';
 
@@ -383,9 +385,24 @@ class _OilCatalogTile extends StatelessWidget {
           item.title,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
+        subtitle: Row(
+          children: [
+            Flexible(
+              child: Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ),
+            for (final country in item.brand?.countries ?? const <OilCountry>[])
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: CountryFlag(
+                  flagUrl: country.flagUrl,
+                  flagEmoji: country.flagEmoji,
+                  height: 12,
+                ),
+              ),
+          ],
         ),
       ),
     );

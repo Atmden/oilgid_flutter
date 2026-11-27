@@ -1,4 +1,5 @@
 import '../../domain/entities/oil_brand.dart';
+import 'oil_country_model.dart';
 
 class OilBrandModel extends OilBrand {
   OilBrandModel({
@@ -6,6 +7,7 @@ class OilBrandModel extends OilBrand {
     required super.title,
     required super.description,
     required super.logo,
+    super.countries,
   });
 
   factory OilBrandModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +16,7 @@ class OilBrandModel extends OilBrand {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       logo: json['logo'] ?? '',
+      countries: OilCountryModel.fromJsonList(json['countries']),
     );
   }
 }
